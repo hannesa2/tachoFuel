@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
+import android.util.Log
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.lifecycle.AndroidViewModel
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.io.File
 import java.util.concurrent.Executor
 
@@ -71,6 +73,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val lastKm = dao.getLatest()?.km
         val result = OdometerDetector.detect(bitmap, lastKm)
         _captureState.value = if (result?.km != null) {
+            Timber.d("Detected odometer reading: ${result.km}, OCR text: ${result.rawOcrText}")
             CaptureState.Detected(result.km, result.rawOcrText)
         } else {
             CaptureState.Error("No odometer reading found.\nOCR text: ${result?.rawOcrText}")

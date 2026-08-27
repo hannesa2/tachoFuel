@@ -29,13 +29,20 @@ object OdometerDetector {
         val visionText = recognizer.process(image).await()
 
         val rawText = visionText.text
-        // Find all digit-only blocks of 4–6 characters
-        val candidates = Regex("""\d{4,6}""")
-            .findAll(rawText.replace(Regex("\\s"), ""))
-            .map { it.value.toIntOrNull() }
-            .filterNotNull()
-            // Plausible odometer range: 0 – 999999 km
+
+        // Search each OCR element independently to avoid merging unrelated numbers
+        // (e.g. speedometer scale digits concatenating with the odometer reading).
+        val digitPattern = Regex("""\d{4,6}""")
+        val candidates = visionText.textBlocks
+            .flatMap { it.lines }
+            .flatMap { it.elements }
+            .flatMap { digitPattern.findAll(it.text.replace(Regex("\\s"), "")) }
+            .mapNotNull { it.value.toIntOrNull() }
+            // Plausible odometer range: 0 – 999 999 km
             .filter { it in 0..999_999 }
+            // The Veglia Borletti tenths drum is shown as a 6th digit in the OCR output.
+            // Strip it so the result is always a whole-km value.
+            .map { if (it >= 100_000) it / 10 else it }
             .toList()
 
         if (candidates.isEmpty()) return OdometerResult(km = null, rawOcrText = rawText)

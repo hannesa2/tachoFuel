@@ -90,6 +90,37 @@ private fun CameraScreen(
     val imageCapture = remember { ImageCapture.Builder().build() }
     val executor = remember { Executors.newSingleThreadExecutor() }
 
+    val previewView = remember {
+        PreviewView(context).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            )
+            scaleType = PreviewView.ScaleType.FILL_CENTER
+        }
+    }
+
+    DisposableEffect(lifecycleOwner, hasCameraPermission) {
+        var cameraProvider: ProcessCameraProvider? = null
+        if (hasCameraPermission) {
+            val future = ProcessCameraProvider.getInstance(context)
+            future.addListener({
+                cameraProvider = future.get()
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
+                cameraProvider!!.unbindAll()
+                cameraProvider!!.bindToLifecycle(
+                    lifecycleOwner,
+                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    preview,
+                    imageCapture,
+                )
+            }, ContextCompat.getMainExecutor(context))
+        }
+        onDispose { cameraProvider?.unbindAll() }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -108,34 +139,10 @@ private fun CameraScreen(
                 .padding(padding),
         ) {
             if (hasCameraPermission) {
-                // Camera preview
+                // Camera preview — binding is managed by DisposableEffect above
                 AndroidView(
-                    factory = { ctx ->
-                        PreviewView(ctx).apply {
-                            layoutParams = ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                            )
-                            scaleType = PreviewView.ScaleType.FILL_CENTER
-                        }
-                    },
+                    factory = { previewView },
                     modifier = Modifier.fillMaxSize(),
-                    update = { previewView ->
-                        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-                        cameraProviderFuture.addListener({
-                            val cameraProvider = cameraProviderFuture.get()
-                            val preview = Preview.Builder().build().also {
-                                it.setSurfaceProvider(previewView.surfaceProvider)
-                            }
-                            cameraProvider.unbindAll()
-                            cameraProvider.bindToLifecycle(
-                                lifecycleOwner,
-                                CameraSelector.DEFAULT_BACK_CAMERA,
-                                preview,
-                                imageCapture,
-                            )
-                        }, ContextCompat.getMainExecutor(context))
-                    },
                 )
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
