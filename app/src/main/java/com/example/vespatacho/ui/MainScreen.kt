@@ -124,8 +124,8 @@ private fun CameraScreen(
                         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
                         cameraProviderFuture.addListener({
                             val cameraProvider = cameraProviderFuture.get()
-                            val preview = Preview.Builder().build().apply {
-                                surfaceProvider = previewView.surfaceProvider
+                            val preview = Preview.Builder().build().also {
+                                it.setSurfaceProvider(previewView.surfaceProvider)
                             }
                             cameraProvider.unbindAll()
                             cameraProvider.bindToLifecycle(
@@ -171,7 +171,7 @@ private fun CameraScreen(
                         Text("Detecting odometer…", color = Color.White)
                     }
                     is MainViewModel.CaptureState.Detected -> {
-                        DetectedOverlay(km = state.km, rawText = state.rawOcrText, onSave = onSave, onDiscard = onDiscard)
+                        DetectedOverlay(km = state.km, rawText = state.rawText, onSave = onSave, onDiscard = onDiscard)
                     }
                     is MainViewModel.CaptureState.Error -> {
                         Text(state.message, color = Color.Red, textAlign = TextAlign.Center)
