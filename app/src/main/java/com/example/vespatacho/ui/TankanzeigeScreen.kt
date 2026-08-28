@@ -201,7 +201,8 @@ fun CameraFuelScreen(
                     is TankanzeigeViewModel.CaptureState.Ready -> {
                         FuelInputOverlay(
                             detectedPrice = state.detectedPrice,
-                            rawOcrText = state.rawOcrTextKm,
+                            detectedLiter = state.detectedLiter,
+                            rawOcrTextFuel = state.rawOcrTextFuel,
                             onSave = onSave,
                             onDiscard = onDiscard,
                         )
@@ -219,12 +220,13 @@ fun CameraFuelScreen(
 @Composable
 private fun FuelInputOverlay(
     detectedPrice: String,
-    rawOcrText: String,
+    detectedLiter: String,
+    rawOcrTextFuel: String,
     onSave: (Double, Double, String) -> Unit,
     onDiscard: () -> Unit,
 ) {
     var price by remember(detectedPrice) { mutableStateOf(detectedPrice) }
-    var liter by remember { mutableStateOf("") }
+    var liter by remember(detectedLiter) { mutableStateOf(detectedLiter) }
 
     fun String.toDoubleOrNullFlexible(): Double? = replace(',', '.').toDoubleOrNull()
 
@@ -272,7 +274,7 @@ private fun FuelInputOverlay(
                 onClick = {
                     val parsedPrice = price.toDoubleOrNullFlexible()
                     val parsedLiter = liter.toDoubleOrNullFlexible()
-                    if (parsedPrice != null && parsedLiter != null) onSave(parsedPrice, parsedLiter, rawOcrText)
+                    if (parsedPrice != null && parsedLiter != null) onSave(parsedPrice, parsedLiter, rawOcrTextFuel)
                 },
                 enabled = price.toDoubleOrNullFlexible() != null && liter.toDoubleOrNullFlexible() != null,
             ) {

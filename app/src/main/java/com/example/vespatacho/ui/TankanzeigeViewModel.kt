@@ -38,7 +38,7 @@ class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle)
     sealed interface CaptureState {
         data object Idle : CaptureState
         data object Processing : CaptureState
-        data class Ready(val detectedPrice: String, val rawOcrTextKm: String) : CaptureState
+        data class Ready(val detectedPrice: String, val detectedLiter: String, val rawOcrTextFuel: String) : CaptureState
         data class Error(val message: String) : CaptureState
     }
 
@@ -71,8 +71,8 @@ class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle)
     private suspend fun processPhoto(photoFile: File) {
         try {
             val bitmap = withContext(Dispatchers.IO) { loadRotatedBitmap(photoFile) }
-            val result = FuelDetector.detectPrice(bitmap)
-            _captureState.value = CaptureState.Ready(result.price, result.rawOcrTextKm)
+            val result = FuelDetector.detect(bitmap)
+            _captureState.value = CaptureState.Ready(result.price, result.liter, result.rawOcrTextFuel)
         } catch (e: Exception) {
             _captureState.value = CaptureState.Error(e.message ?: "Failed to analyse photo.")
         } finally {
@@ -80,13 +80,13 @@ class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle)
         }
     }
 
-    fun saveReading(price: Double, liter: Double, rawOcrText: String) {
+    fun saveReading(price: Double, liter: Double, rawOcrTextFuel: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val latest = repo.getLatestByVehicle(vehicleId)
             if (latest != null && latest.price == null && latest.liter == null) {
-                repo.update(latest.copy(price = price, liter = liter, rawOcrTextFuel = rawOcrText))
+                repo.update(latest.copy(price = price, liter = liter, rawOcrTextFuel = rawOcrTextFuel))
             } else {
-                repo.insert(GasReading(vehicleId = vehicleId, price = price, liter = liter, rawOcrTextFuel = rawOcrText))
+                repo.insert(GasReading(vehicleId = vehicleId, price = price, liter = liter, rawOcrTextFuel = rawOcrTextFuel))
             }
             _captureState.value = CaptureState.Idle
         }
