@@ -1,0 +1,28 @@
+package com.example.vespatacho.camera
+
+import android.graphics.Bitmap
+import com.google.android.gms.tasks.Task
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+
+object FuelDetector {
+
+    private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private val pricePattern = Regex("""\d+[.,]\d{1,3}""")
+
+    suspend fun detectPrice(bitmap: Bitmap): String {
+        val image = InputImage.fromBitmap(bitmap, 0)
+        val visionText = recognizer.process(image).await()
+        return pricePattern.find(visionText.text)?.value?.replace(',', '.') ?: ""
+    }
+
+    private suspend fun <T> Task<T>.await(): T =
+        suspendCancellableCoroutine { cont ->
+            addOnSuccessListener { cont.resume(it) }
+            addOnFailureListener { cont.resumeWithException(it) }
+        }
+}
