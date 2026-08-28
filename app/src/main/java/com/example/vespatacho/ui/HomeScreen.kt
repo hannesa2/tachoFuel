@@ -2,7 +2,9 @@ package com.example.vespatacho.ui
 
 import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import com.example.vespatacho.EditKmReadingActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,15 +25,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -121,6 +127,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                         VehicleTab(
                             vehicle = vehicle,
                             kmReadingsFlow = viewModel.kmReadingsForVehicle(vehicle.id),
+                            onDelete = viewModel::deleteKmReading,
                             onTacho = {
                                 context.startActivity(
                                     Intent(context, TachoActivity::class.java)
@@ -145,6 +152,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
 private fun VehicleTab(
     vehicle: Vehicle,
     kmReadingsFlow: Flow<List<KmReading>>,
+    onDelete: (KmReading) -> Unit,
     onTacho: () -> Unit,
     onTankanzeige: () -> Unit,
 ) {
@@ -172,6 +180,7 @@ private fun VehicleTab(
                         reading = reading,
                         prevKm = readings.getOrNull(index + 1)?.km,
                         dateStr = fmt.format(Date(reading.timestamp)),
+                        onDelete = { onDelete(reading) },
                     )
                 }
             }
@@ -188,9 +197,57 @@ private fun VehicleTab(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun HomeReadingCard(reading: KmReading, prevKm: Int?, dateStr: String) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun HomeReadingCard(reading: KmReading, prevKm: Int?, dateStr: String, onDelete: () -> Unit) {
+    val context = LocalContext.current
+    var showOptionsDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showOptionsDialog) {
+        AlertDialog(
+            onDismissRequest = { showOptionsDialog = false },
+            title = { Text("${reading.km} km") },
+            text = { Text("Was möchtest du tun?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showOptionsDialog = false
+                    context.startActivity(
+                        Intent(context, EditKmReadingActivity::class.java)
+                            .putExtra("readingId", reading.id),
+                    )
+                }) { Text("Bearbeiten") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showOptionsDialog = false; showDeleteDialog = true }) {
+                    Text("Löschen")
+                }
+            },
+        )
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eintrag löschen?") },
+            text = { Text("${reading.km} km vom $dateStr wirklich löschen?") },
+            confirmButton = {
+                TextButton(onClick = { showDeleteDialog = false; onDelete() }) { Text("Löschen") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Abbrechen") }
+            },
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = {},
+                onLongClick = { showOptionsDialog = true },
+            ),
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),

@@ -1,0 +1,188 @@
+package com.example.vespatacho.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import java.util.Calendar
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditKmReadingScreen(
+    onSaved: () -> Unit,
+    onCancel: () -> Unit,
+    viewModel: EditKmReadingViewModel = viewModel(),
+) {
+    val reading by viewModel.reading.collectAsState()
+
+    MaterialTheme {
+        Scaffold(
+            topBar = { TopAppBar(title = { Text("Eintrag bearbeiten") }) },
+        ) { padding ->
+            if (reading == null) {
+                CircularProgressIndicator(modifier = Modifier.padding(padding))
+            } else {
+                var kmText by remember(reading) { mutableStateOf(reading!!.km.toString()) }
+                var timestamp by remember(reading) { mutableLongStateOf(reading!!.timestamp) }
+
+                val cal = remember(timestamp) {
+                    Calendar.getInstance().apply { timeInMillis = timestamp }
+                }
+                val formattedDateTime = remember(timestamp) {
+                    "%02d.%02d.%04d %02d:%02d".format(
+                        cal.get(Calendar.DAY_OF_MONTH),
+                        cal.get(Calendar.MONTH) + 1,
+                        cal.get(Calendar.YEAR),
+                        cal.get(Calendar.HOUR_OF_DAY),
+                        cal.get(Calendar.MINUTE),
+                    )
+                }
+
+                var showDatePicker by remember { mutableStateOf(false) }
+                var showTimePicker by remember { mutableStateOf(false) }
+
+                // Date picker — initialise to current timestamp in UTC millis (midnight)
+                val datePickerState = rememberDatePickerState(
+                    initialSelectedDateMillis = run {
+                        // Strip time from timestamp to get UTC midnight for the picker
+                        val utcCal = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+                        utcCal.timeInMillis = timestamp
+                        utcCal.set(Calendar.HOUR_OF_DAY, 0)
+                        utcCal.set(Calendar.MINUTE, 0)
+                        utcCal.set(Calendar.SECOND, 0)
+                        utcCal.set(Calendar.MILLISECOND, 0)
+                        utcCal.timeInMillis
+                    },
+                )
+                val timePickerState = rememberTimePickerState(
+                    initialHour = cal.get(Calendar.HOUR_OF_DAY),
+                    initialMinute = cal.get(Calendar.MINUTE),
+                    is24Hour = true,
+                )
+
+                if (showDatePicker) {
+                    DatePickerDialog(
+                        onDismissRequest = { showDatePicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showDatePicker = false
+                                showTimePicker = true
+                            }) { Text("Weiter") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDatePicker = false }) { Text("Abbrechen") }
+                        },
+                    ) { DatePicker(state = datePickerState) }
+                }
+
+                if (showTimePicker) {
+                    AlertDialog(
+                        onDismissRequest = { showTimePicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showTimePicker = false
+                                // Combine selected date (UTC midnight) with selected time (local)
+                                val selectedDayMillis = datePickerState.selectedDateMillis
+                                    ?: timestamp
+                                val newCal = Calendar.getInstance().apply {
+                                    // DatePicker gives UTC midnight — convert to local date
+                                    val utcCal = Calendar.getInstance(
+                                        java.util.TimeZone.getTimeZone("UTC"),
+                                    ).apply { timeInMillis = selectedDayMillis }
+                                    set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
+                                    set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
+                                    set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
+                                    set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                                    set(Calendar.MINUTE, timePickerState.minute)
+                                    set(Calendar.SECOND, 0)
+                                    set(Calendar.MILLISECOND, 0)
+                                }
+                                timestamp = newCal.timeInMillis
+                            }) { Text("OK") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showTimePicker = false }) { Text("Abbrechen") }
+                        },
+                        text = { TimePicker(state = timePickerState) },
+                    )
+                }
+
+                Column(
+                    modifier = Modifier
+                        .padding(padding)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    OutlinedTextField(
+                        value = kmText,
+                        onValueChange = { kmText = it.filter { c -> c.isDigit() } },
+                        label = { Text("km") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = formattedDateTime,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Datum & Uhrzeit") },
+                        trailingIcon = {
+                            IconButton(onClick = { showDatePicker = true }) {
+                                Icon(Icons.Default.CalendarMonth, contentDescription = "Datum ändern")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(
+                            onClick = {
+                                kmText.toIntOrNull()?.let { km ->
+                                    viewModel.save(km, timestamp, onSaved)
+                                }
+                            },
+                            enabled = kmText.isNotBlank(),
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Speichern") }
+                        OutlinedButton(
+                            onClick = onCancel,
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Abbrechen") }
+                    }
+                }
+            }
+        }
+    }
+}

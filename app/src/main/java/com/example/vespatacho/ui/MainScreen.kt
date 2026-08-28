@@ -39,7 +39,7 @@ import java.util.*
 import java.util.concurrent.Executors
 
 @Composable
-fun VespaTachoApp(viewModel: MainViewModel = viewModel()) {
+fun VespaTachoApp(onSaved: () -> Unit = {}, viewModel: MainViewModel = viewModel()) {
     var showHistory by remember { mutableStateOf(false) }
     val captureState by viewModel.captureState.collectAsState()
     val readings by viewModel.readings.collectAsState()
@@ -55,7 +55,7 @@ fun VespaTachoApp(viewModel: MainViewModel = viewModel()) {
             CameraScreen(
                 captureState = captureState,
                 onCapture = viewModel::captureAndAnalyse,
-                onSave = { km, raw -> viewModel.saveReading(km, raw) },
+                onSave = { km, raw -> viewModel.saveReading(km, raw); onSaved() },
                 onDiscard = viewModel::resetCapture,
                 onShowHistory = { showHistory = true },
                 latestKm = readings.firstOrNull()?.km,

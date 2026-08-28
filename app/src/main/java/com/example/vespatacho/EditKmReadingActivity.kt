@@ -4,12 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.vespatacho.ui.TankanzeigeApp
+import com.example.vespatacho.ui.EditKmReadingScreen
 
-class TankanzeigeActivity : ComponentActivity() {
+class EditKmReadingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { TankanzeigeApp(onSaved = { finish() }) }
+        setContent {
+            EditKmReadingScreen(
+                onSaved = { finish() },
+                onCancel = { finish() },
+            )
+        }
     }
 }

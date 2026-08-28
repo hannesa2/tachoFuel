@@ -6,12 +6,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.vespatacho.data.AppDatabase
 import com.example.vespatacho.data.KmReading
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = app.getSharedPreferences("home_prefs", Context.MODE_PRIVATE)
@@ -34,4 +36,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun kmReadingsForVehicle(vehicleId: Long): Flow<List<KmReading>> =
         kmDao.getAllByVehicle(vehicleId)
+
+    fun deleteKmReading(reading: KmReading) {
+        viewModelScope.launch(Dispatchers.IO) { kmDao.delete(reading) }
+    }
 }

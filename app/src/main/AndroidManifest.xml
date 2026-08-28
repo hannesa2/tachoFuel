@@ -31,6 +31,9 @@
         <activity
             android:name=".VehicleManagementActivity"
             android:screenOrientation="portrait" />
+        <activity
+            android:name=".EditKmReadingActivity"
+            android:screenOrientation="portrait" />
 
     </application>
 

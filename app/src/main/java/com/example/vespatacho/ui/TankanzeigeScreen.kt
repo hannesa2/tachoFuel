@@ -71,7 +71,7 @@ import java.util.Locale
 import java.util.concurrent.Executors
 
 @Composable
-fun TankanzeigeApp(viewModel: TankanzeigeViewModel = viewModel()) {
+fun TankanzeigeApp(onSaved: () -> Unit = {}, viewModel: TankanzeigeViewModel = viewModel()) {
     var showHistory by remember { mutableStateOf(false) }
     val captureState by viewModel.captureState.collectAsState()
     val readings by viewModel.readings.collectAsState()
@@ -87,7 +87,7 @@ fun TankanzeigeApp(viewModel: TankanzeigeViewModel = viewModel()) {
             CameraFuelScreen(
                 captureState = captureState,
                 onCapture = viewModel::captureAndAnalyse,
-                onSave = viewModel::saveReading,
+                onSave = { price, liter -> viewModel.saveReading(price, liter); onSaved() },
                 onDiscard = viewModel::resetCapture,
                 onShowHistory = { showHistory = true },
             )

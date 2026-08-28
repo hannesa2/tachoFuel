@@ -10,6 +10,6 @@ class TachoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { VespaTachoApp() }
+        setContent { VespaTachoApp(onSaved = { finish() }) }
     }
 }
