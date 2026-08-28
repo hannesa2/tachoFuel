@@ -1,6 +1,7 @@
 package com.example.vespatacho
 
 import com.example.vespatacho.data.AppDatabase
+import com.example.vespatacho.data.DetectionSampleRepository
 import com.example.vespatacho.data.FirestoreRepository
 import com.example.vespatacho.data.GasReadingRepository
 import info.hannes.logcat.LoggingApplication
@@ -24,9 +25,15 @@ class VespaTachoApp : LoggingApplication() {
         )
     }
 
+    val detectionSampleRepository by lazy {
+        DetectionSampleRepository(dao = database.detectionSampleDao())
+    }
+
     override fun onCreate() {
         super.onCreate()
-        // Pull any records from Firestore that are missing locally.
-        appScope.launch { repository.syncFromCloud() }
+        appScope.launch {
+            repository.syncFromCloud()
+            detectionSampleRepository.retryPendingUploads()
+        }
     }
 }

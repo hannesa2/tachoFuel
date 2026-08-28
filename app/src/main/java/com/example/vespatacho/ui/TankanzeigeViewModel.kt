@@ -12,6 +12,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.example.vespatacho.camera.FuelDetector
 import com.example.vespatacho.data.AppDatabase
+import com.example.vespatacho.data.DetectionSampleRepository
 import com.example.vespatacho.data.GasReading
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,7 @@ import java.util.concurrent.Executor
 class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
 
     private val repo = (app as com.example.vespatacho.VespaTachoApp).repository
+    private val sampleRepo = (app as com.example.vespatacho.VespaTachoApp).detectionSampleRepository
     private val vehicleId: Long = savedStateHandle.get<Long>("vehicleId") ?: 1L
 
     val readings = repo.getAllByVehicle(vehicleId).stateIn(
@@ -72,6 +74,15 @@ class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle)
         try {
             val bitmap = withContext(Dispatchers.IO) { loadRotatedBitmap(photoFile) }
             val result = FuelDetector.detect(bitmap)
+            // Save mid-res image + detection result for ML training data
+            sampleRepo.saveSample(
+                bitmap = bitmap,
+                type = DetectionSampleRepository.TYPE_FUEL,
+                rawOcrText = result.rawOcrTextFuel,
+                detectedPrice = result.price.ifEmpty { null },
+                detectedLiter = result.liter.ifEmpty { null },
+                vehicleId = vehicleId,
+            )
             _captureState.value = CaptureState.Ready(result.price, result.liter, result.rawOcrTextFuel)
         } catch (e: Exception) {
             _captureState.value = CaptureState.Error(e.message ?: "Failed to analyse photo.")

@@ -12,6 +12,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.example.vespatacho.camera.OdometerDetector
 import com.example.vespatacho.data.AppDatabase
+import com.example.vespatacho.data.DetectionSampleRepository
 import com.example.vespatacho.data.GasReading
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,7 @@ import java.util.concurrent.Executor
 class MainViewModel(app: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
 
     private val repo = (app as com.example.vespatacho.VespaTachoApp).repository
+    private val sampleRepo = (app as com.example.vespatacho.VespaTachoApp).detectionSampleRepository
     private val vehicleId: Long = savedStateHandle.get<Long>("vehicleId") ?: 1L
 
     val readings = repo.getAllByVehicle(vehicleId).stateIn(
@@ -73,6 +75,14 @@ class MainViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andr
         val bitmap = withContext(Dispatchers.IO) { loadRotatedBitmap(photoFile) }
         val lastKm = repo.getLatestByVehicle(vehicleId)?.km
         val result = OdometerDetector.detect(bitmap, lastKm)
+        // Save mid-res image + detection result for ML training data
+        sampleRepo.saveSample(
+            bitmap = bitmap,
+            type = DetectionSampleRepository.TYPE_ODOMETER,
+            rawOcrText = result?.rawOcrTextKm ?: "",
+            detectedKm = result?.km,
+            vehicleId = vehicleId,
+        )
         _captureState.value = if (result?.km != null) {
             Timber.d("Detected odometer reading: ${result.km}, OCR text: ${result.rawOcrTextKm}")
             CaptureState.Detected(result.km, result.rawOcrTextKm)
