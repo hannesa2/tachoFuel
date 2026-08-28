@@ -268,7 +268,12 @@ private fun HomeReadingCard(reading: GasReading, prevKm: Int?, dateStr: String, 
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
-                onClick = {},
+                onClick = {
+                    context.startActivity(
+                        Intent(context, EditKmReadingActivity::class.java)
+                            .putExtra("readingId", reading.id),
+                    )
+                },
                 onLongClick = { showOptionsDialog = true },
             ),
     ) {

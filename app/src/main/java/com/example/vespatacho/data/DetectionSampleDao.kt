@@ -20,6 +20,13 @@ interface DetectionSampleDao {
     @Query("SELECT * FROM detection_samples WHERE storageUrl IS NULL ORDER BY timestamp ASC")
     suspend fun getPendingUpload(): List<DetectionSample>
 
+    /** Find the sample closest in time to [timestamp] for the given vehicle and detection type. */
+    @Query(
+        "SELECT * FROM detection_samples WHERE vehicleId = :vehicleId AND type = :type " +
+        "ORDER BY ABS(timestamp - :timestamp) ASC LIMIT 1",
+    )
+    suspend fun findNearest(vehicleId: Long, type: String, timestamp: Long): DetectionSample?
+
     @Query("SELECT COUNT(*) FROM detection_samples")
     suspend fun count(): Long
 }
