@@ -4,6 +4,21 @@ Android app for tracking odometer readings and fuel expenses, with OCR-based dat
 
 ---
 
+## Setup: Enable Firebase Storage
+
+Before the app can upload images or you can download them, Firebase Storage must be
+activated once in the Firebase Console:
+
+1. Open <https://console.firebase.google.com/project/vespatacho/storage>
+2. Click **Get started** → **Start in test mode** → pick a region (e.g. `europe-west1`) → **Done**
+3. Verify the bucket exists:
+   ```bash
+   gcloud storage buckets list --project vespatacho
+   ```
+   You should now see your bucket (e.g. `vespatacho.firebasestorage.app`).
+
+---
+
 ## Download ML training data from Firebase (macOS)
 
 Detection sample images and OCR texts are stored in Firebase Storage and Firestore under the anonymous user's UID.
@@ -30,29 +45,36 @@ No project directory needed — pass `--project vespatacho` directly to each com
 
 ### 1 — Download all images from Firebase Storage
 
+> **Prerequisite**: Firebase Storage must be enabled first.
+> Go to [Firebase Console](https://console.firebase.google.com/project/vespatacho/storage) →
+> Storage → **Get started** → choose a region → Done.
+> The bucket name shown there (e.g. `vespatacho.firebasestorage.app`) is what you use below.
+
+Find your exact bucket name:
+
+```bash
+gcloud storage buckets list --project vespatacho
+```
+
 All captured images are stored at:
 
 ```
-gs://vespatacho.firebasestorage.app/detectionSamples/{uid}/{type}/{timestamp}_{id}.jpg
+gs://{bucket}/detectionSamples/{uid}/{type}/{timestamp}_{id}.jpg
 ```
 
-Download everything recursively into a local folder:
+List available images:
+
+```bash
+gcloud storage ls --recursive "gs://vespatacho.firebasestorage.app/detectionSamples/"
+```
+
+Download everything into a local folder:
 
 ```bash
 mkdir -p ~/tachofuel-samples/images
-gsutil -m cp -r "gs://vespatacho.firebasestorage.app/detectionSamples/**" ~/tachofuel-samples/images/
-```
-
-> **`gsutil`** is part of the Google Cloud SDK. Install it via:
-> ```bash
-> brew install --cask google-cloud-sdk
-> gcloud auth login
-> ```
-
-List available images without downloading:
-
-```bash
-gsutil ls -r "gs://vespatacho.firebasestorage.app/detectionSamples/"
+gcloud storage cp --recursive \
+  "gs://vespatacho.firebasestorage.app/detectionSamples/**" \
+  ~/tachofuel-samples/images/
 ```
 
 ---
@@ -112,7 +134,7 @@ OUT=~/tachofuel-samples
 mkdir -p "$OUT/images" "$OUT/metadata"
 
 echo "==> Downloading images from Storage..."
-gsutil -m cp -r "$BUCKET/detectionSamples/" "$OUT/images/"
+gcloud storage cp --recursive "$BUCKET/detectionSamples/" "$OUT/images/"
 
 echo "==> Exporting Firestore metadata..."
 # Requires Blaze plan for managed export:
@@ -146,7 +168,12 @@ echo "==> Done. Files in $OUT"
 ```
 
 > **Authentication**: the script uses [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials).
-> Run `gcloud auth application-default login` once before executing it.
+> If `gcloud` fails with a `collections.Mapping` error, reinstall it:
+> ```bash
+> brew uninstall --cask google-cloud-sdk && brew install --cask google-cloud-sdk
+> source "$(brew --prefix)/share/google-cloud-sdk/path.bash.inc"
+> ```
+> Then run `gcloud auth application-default login` once before executing the script.
 
 ---
 
