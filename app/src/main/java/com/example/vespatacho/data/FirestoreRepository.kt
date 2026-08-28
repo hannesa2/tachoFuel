@@ -79,7 +79,8 @@ private fun GasReading.toMap() = buildMap<String, Any?> {
     put("km", km)
     put("price", price)
     put("liter", liter)
-    put("rawOcrText", rawOcrText)
+    put("rawOcrTextKm", rawOcrTextKm)
+    put("rawOcrTextFuel", rawOcrTextFuel)
     put("timestamp", timestamp)
 }
 
@@ -91,7 +92,8 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toGasReading(): GasRe
             km = getLong("km")?.toInt(),
             price = getDouble("price"),
             liter = getDouble("liter"),
-            rawOcrText = getString("rawOcrText"),
+            rawOcrTextKm = getString("rawOcrTextKm"),
+        rawOcrTextFuel = getString("rawOcrTextFuel"),
             timestamp = getLong("timestamp") ?: System.currentTimeMillis(),
         )
     } catch (_: Exception) { null }

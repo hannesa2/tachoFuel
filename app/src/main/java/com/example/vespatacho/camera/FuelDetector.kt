@@ -14,10 +14,14 @@ object FuelDetector {
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     private val pricePattern = Regex("""\d+[.,]\d{1,3}""")
 
-    suspend fun detectPrice(bitmap: Bitmap): String {
+    data class FuelResult(val price: String, val rawOcrTextKm: String)
+
+    suspend fun detectPrice(bitmap: Bitmap): FuelResult {
         val image = InputImage.fromBitmap(bitmap, 0)
         val visionText = recognizer.process(image).await()
-        return pricePattern.find(visionText.text)?.value?.replace(',', '.') ?: ""
+        val rawText = visionText.text
+        val price = pricePattern.find(rawText)?.value?.replace(',', '.') ?: ""
+        return FuelResult(price = price, rawOcrTextKm = rawText)
     }
 
     private suspend fun <T> Task<T>.await(): T =

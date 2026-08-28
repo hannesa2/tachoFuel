@@ -87,7 +87,7 @@ fun TankanzeigeApp(onSaved: () -> Unit = {}, viewModel: TankanzeigeViewModel = v
             CameraFuelScreen(
                 captureState = captureState,
                 onCapture = viewModel::captureAndAnalyse,
-                onSave = { price, liter -> viewModel.saveReading(price, liter); onSaved() },
+                onSave = { price, liter, rawText -> viewModel.saveReading(price, liter, rawText); onSaved() },
                 onDiscard = viewModel::resetCapture,
                 onShowHistory = { showHistory = true },
             )
@@ -100,7 +100,7 @@ fun TankanzeigeApp(onSaved: () -> Unit = {}, viewModel: TankanzeigeViewModel = v
 fun CameraFuelScreen(
     captureState: TankanzeigeViewModel.CaptureState,
     onCapture: (ImageCapture, java.util.concurrent.Executor) -> Unit,
-    onSave: (Double, Double) -> Unit,
+    onSave: (Double, Double, String) -> Unit,
     onDiscard: () -> Unit,
     onShowHistory: () -> Unit,
 ) {
@@ -201,6 +201,7 @@ fun CameraFuelScreen(
                     is TankanzeigeViewModel.CaptureState.Ready -> {
                         FuelInputOverlay(
                             detectedPrice = state.detectedPrice,
+                            rawOcrText = state.rawOcrTextKm,
                             onSave = onSave,
                             onDiscard = onDiscard,
                         )
@@ -218,7 +219,8 @@ fun CameraFuelScreen(
 @Composable
 private fun FuelInputOverlay(
     detectedPrice: String,
-    onSave: (Double, Double) -> Unit,
+    rawOcrText: String,
+    onSave: (Double, Double, String) -> Unit,
     onDiscard: () -> Unit,
 ) {
     var price by remember(detectedPrice) { mutableStateOf(detectedPrice) }
@@ -270,7 +272,7 @@ private fun FuelInputOverlay(
                 onClick = {
                     val parsedPrice = price.toDoubleOrNullFlexible()
                     val parsedLiter = liter.toDoubleOrNullFlexible()
-                    if (parsedPrice != null && parsedLiter != null) onSave(parsedPrice, parsedLiter)
+                    if (parsedPrice != null && parsedLiter != null) onSave(parsedPrice, parsedLiter, rawOcrText)
                 },
                 enabled = price.toDoubleOrNullFlexible() != null && liter.toDoubleOrNullFlexible() != null,
             ) {

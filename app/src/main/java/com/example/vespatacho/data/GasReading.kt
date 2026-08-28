@@ -14,6 +14,8 @@ data class GasReading(
     /** Litres filled — null if not yet captured. */
     val liter: Double? = null,
     /** Raw OCR text from odometer scan. */
-    val rawOcrText: String? = null,
+    val rawOcrTextKm: String? = null,
+    /** Raw OCR text from fuel station display scan. */
+    val rawOcrTextFuel: String? = null,
     val timestamp: Long = System.currentTimeMillis(),
 )

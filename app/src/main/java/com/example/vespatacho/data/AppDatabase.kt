@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Vehicle::class, GasReading::class], version = 4, exportSchema = false)
+@Database(entities = [Vehicle::class, GasReading::class], version = 6, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun gasReadingDao(): GasReadingDao
     abstract fun vehicleDao(): VehicleDao
@@ -45,6 +45,26 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `gas_readings` ADD COLUMN `rawOcrTextFuel` TEXT")
+            }
+        }
+
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // SQLite doesn't support RENAME COLUMN before 3.25 — recreate table
+                db.execSQL(
+                    "CREATE TABLE `gas_readings_new` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `vehicleId` INTEGER NOT NULL DEFAULT 1, `km` INTEGER, `price` REAL, `liter` REAL, `rawOcrTextKm` TEXT, `rawOcrTextFuel` TEXT, `timestamp` INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "INSERT INTO `gas_readings_new` SELECT `id`, `vehicleId`, `km`, `price`, `liter`, `rawOcrText`, `rawOcrTextFuel`, `timestamp` FROM `gas_readings`",
+                )
+                db.execSQL("DROP TABLE `gas_readings`")
+                db.execSQL("ALTER TABLE `gas_readings_new` RENAME TO `gas_readings`")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -52,7 +72,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "vespa_tacho.db",
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
                     .also { instance = it }
             }

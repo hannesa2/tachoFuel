@@ -62,7 +62,7 @@ object OdometerDetector {
             .map { if (it >= 100_000) it / 10 else it }
             .toList()
 
-        if (candidates.isEmpty()) return OdometerResult(km = null, rawOcrText = rawText)
+        if (candidates.isEmpty()) return OdometerResult(km = null, rawOcrTextKm = rawText)
 
         // If we have a reference point, pick the candidate closest to it.
         val best = if (lastKnownKm != null) {
@@ -72,10 +72,10 @@ object OdometerDetector {
             candidates.maxOrNull()
         }
 
-        return OdometerResult(km = best, rawOcrText = rawText)
+        return OdometerResult(km = best, rawOcrTextKm = rawText)
     }
 
-    data class OdometerResult(val km: Int?, val rawOcrText: String)
+    data class OdometerResult(val km: Int?, val rawOcrTextKm: String)
 
     /** Extension to use ML Kit Tasks as a coroutine. */
     private suspend fun <T> com.google.android.gms.tasks.Task<T>.await(): T =

@@ -74,21 +74,21 @@ class MainViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andr
         val lastKm = repo.getLatestByVehicle(vehicleId)?.km
         val result = OdometerDetector.detect(bitmap, lastKm)
         _captureState.value = if (result?.km != null) {
-            Timber.d("Detected odometer reading: ${result.km}, OCR text: ${result.rawOcrText}")
-            CaptureState.Detected(result.km, result.rawOcrText)
+            Timber.d("Detected odometer reading: ${result.km}, OCR text: ${result.rawOcrTextKm}")
+            CaptureState.Detected(result.km, result.rawOcrTextKm)
         } else {
-            CaptureState.Error("No odometer reading found.\nOCR text: ${result?.rawOcrText}")
+            CaptureState.Error("No odometer reading found.\nOCR text: ${result?.rawOcrTextKm}")
         }
         photoFile.delete()
     }
 
-    fun saveReading(km: Int, rawOcrText: String) {
+    fun saveReading(km: Int, rawOcrTextKm: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val latest = repo.getLatestByVehicle(vehicleId)
             if (latest != null && latest.km == null) {
-                repo.update(latest.copy(km = km, rawOcrText = rawOcrText))
+                repo.update(latest.copy(km = km, rawOcrTextKm = rawOcrTextKm))
             } else {
-                repo.insert(GasReading(vehicleId = vehicleId, km = km, rawOcrText = rawOcrText))
+                repo.insert(GasReading(vehicleId = vehicleId, km = km, rawOcrTextKm = rawOcrTextKm))
             }
             _captureState.value = CaptureState.Idle
         }
