@@ -3,6 +3,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
+    id("com.google.gms.google-services")
 }
 
 
@@ -11,7 +12,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.example.vespatacho"
+        applicationId = "info.hannes.vespatacho"
         minSdk = 26
         versionCode = 1
         versionName = "1.0"
@@ -68,4 +69,9 @@ dependencies {
 
     // AndroidChart line chart
     implementation("com.github.AppDevNext.AndroidChart:chartLib:5.2.4")
+
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-auth-ktx")
 }

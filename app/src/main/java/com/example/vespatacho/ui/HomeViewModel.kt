@@ -17,9 +17,9 @@ import kotlinx.coroutines.launch
 
 class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = app.getSharedPreferences("home_prefs", Context.MODE_PRIVATE)
-    private val gasDao = AppDatabase.getInstance(app).gasReadingDao()
+    private val repo = (app as com.example.vespatacho.VespaTachoApp).repository
 
-    val vehicles = AppDatabase.getInstance(app).vehicleDao().getAll().stateIn(
+    val vehicles = repo.getAllVehicles().stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
         emptyList(),
@@ -34,9 +34,9 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun kmReadingsForVehicle(vehicleId: Long): Flow<List<GasReading>> =
-        gasDao.getAllByVehicle(vehicleId)
+        repo.getAllByVehicle(vehicleId)
 
     fun deleteReading(reading: GasReading) {
-        viewModelScope.launch(Dispatchers.IO) { gasDao.delete(reading) }
+        viewModelScope.launch(Dispatchers.IO) { repo.delete(reading) }
     }
 }

@@ -26,4 +26,7 @@ interface GasReadingDao {
 
     @Query("SELECT * FROM gas_readings WHERE id = :id")
     suspend fun getById(id: Long): GasReading?
+
+    @Query("SELECT id FROM gas_readings")
+    suspend fun getAllIds(): List<Long>
 }

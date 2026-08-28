@@ -19,5 +19,8 @@ interface VehicleDao {
     suspend fun delete(vehicle: Vehicle)
 
     @Query("SELECT * FROM vehicles ORDER BY name ASC")
-    fun getAll(): Flow<List<Vehicle>>
+    fun getAllVehicles(): Flow<List<Vehicle>>
+
+    @Query("SELECT * FROM vehicles ORDER BY name ASC")
+    suspend fun getAllVehiclesOnce(): List<Vehicle>
 }

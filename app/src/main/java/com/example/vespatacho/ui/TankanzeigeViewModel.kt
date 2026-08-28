@@ -26,10 +26,10 @@ import java.util.concurrent.Executor
 
 class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
 
-    private val dao = AppDatabase.getInstance(app).gasReadingDao()
+    private val repo = (app as com.example.vespatacho.VespaTachoApp).repository
     private val vehicleId: Long = savedStateHandle.get<Long>("vehicleId") ?: 1L
 
-    val readings = dao.getAllByVehicle(vehicleId).stateIn(
+    val readings = repo.getAllByVehicle(vehicleId).stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
         emptyList(),
@@ -82,18 +82,18 @@ class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle)
 
     fun saveReading(price: Double, liter: Double) {
         viewModelScope.launch(Dispatchers.IO) {
-            val latest = dao.getLatestByVehicle(vehicleId)
+            val latest = repo.getLatestByVehicle(vehicleId)
             if (latest != null && latest.price == null && latest.liter == null) {
-                dao.update(latest.copy(price = price, liter = liter))
+                repo.update(latest.copy(price = price, liter = liter))
             } else {
-                dao.insert(GasReading(vehicleId = vehicleId, price = price, liter = liter))
+                repo.insert(GasReading(vehicleId = vehicleId, price = price, liter = liter))
             }
             _captureState.value = CaptureState.Idle
         }
     }
 
     fun deleteReading(reading: GasReading) {
-        viewModelScope.launch(Dispatchers.IO) { dao.delete(reading) }
+        viewModelScope.launch(Dispatchers.IO) { repo.delete(reading) }
     }
 
     fun resetCapture() {

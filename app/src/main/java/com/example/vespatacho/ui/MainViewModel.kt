@@ -27,10 +27,10 @@ import java.util.concurrent.Executor
 
 class MainViewModel(app: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
 
-    private val dao = AppDatabase.getInstance(app).gasReadingDao()
+    private val repo = (app as com.example.vespatacho.VespaTachoApp).repository
     private val vehicleId: Long = savedStateHandle.get<Long>("vehicleId") ?: 1L
 
-    val readings = dao.getAllByVehicle(vehicleId).stateIn(
+    val readings = repo.getAllByVehicle(vehicleId).stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
         emptyList(),
@@ -71,7 +71,7 @@ class MainViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andr
 
     private suspend fun processPhoto(photoFile: File) {
         val bitmap = withContext(Dispatchers.IO) { loadRotatedBitmap(photoFile) }
-        val lastKm = dao.getLatestByVehicle(vehicleId)?.km
+        val lastKm = repo.getLatestByVehicle(vehicleId)?.km
         val result = OdometerDetector.detect(bitmap, lastKm)
         _captureState.value = if (result?.km != null) {
             Timber.d("Detected odometer reading: ${result.km}, OCR text: ${result.rawOcrText}")
@@ -84,18 +84,18 @@ class MainViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andr
 
     fun saveReading(km: Int, rawOcrText: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            val latest = dao.getLatestByVehicle(vehicleId)
+            val latest = repo.getLatestByVehicle(vehicleId)
             if (latest != null && latest.km == null) {
-                dao.update(latest.copy(km = km, rawOcrText = rawOcrText))
+                repo.update(latest.copy(km = km, rawOcrText = rawOcrText))
             } else {
-                dao.insert(GasReading(vehicleId = vehicleId, km = km, rawOcrText = rawOcrText))
+                repo.insert(GasReading(vehicleId = vehicleId, km = km, rawOcrText = rawOcrText))
             }
             _captureState.value = CaptureState.Idle
         }
     }
 
     fun deleteReading(reading: GasReading) {
-        viewModelScope.launch(Dispatchers.IO) { dao.delete(reading) }
+        viewModelScope.launch(Dispatchers.IO) { repo.delete(reading) }
     }
 
     fun resetCapture() {

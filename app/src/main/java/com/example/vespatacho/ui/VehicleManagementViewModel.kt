@@ -11,18 +11,18 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class VehicleManagementViewModel(app: Application) : AndroidViewModel(app) {
-    private val dao = AppDatabase.getInstance(app).vehicleDao()
-    val vehicles = dao.getAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val repo = (app as com.example.vespatacho.VespaTachoApp).repository
+    val vehicles = repo.getAllVehicles().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun addVehicle(name: String) {
-        viewModelScope.launch(Dispatchers.IO) { dao.insert(Vehicle(name = name)) }
+        viewModelScope.launch(Dispatchers.IO) { repo.insertVehicle(Vehicle(name = name)) }
     }
 
     fun updateVehicle(vehicle: Vehicle) {
-        viewModelScope.launch(Dispatchers.IO) { dao.update(vehicle) }
+        viewModelScope.launch(Dispatchers.IO) { repo.updateVehicle(vehicle) }
     }
 
     fun deleteVehicle(vehicle: Vehicle) {
-        viewModelScope.launch(Dispatchers.IO) { dao.delete(vehicle) }
+        viewModelScope.launch(Dispatchers.IO) { repo.deleteVehicle(vehicle) }
     }
 }

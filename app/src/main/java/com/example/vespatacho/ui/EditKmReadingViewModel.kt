@@ -17,7 +17,7 @@ class EditGasReadingViewModel(
     savedStateHandle: SavedStateHandle,
 ) : AndroidViewModel(app) {
 
-    private val dao = AppDatabase.getInstance(app).gasReadingDao()
+    private val repo = (app as com.example.vespatacho.VespaTachoApp).repository
     private val readingId: Long = savedStateHandle.get<Long>("readingId") ?: 0L
 
     private val _reading = MutableStateFlow<GasReading?>(null)
@@ -25,14 +25,14 @@ class EditGasReadingViewModel(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            _reading.value = dao.getById(readingId)
+            _reading.value = repo.getById(readingId)
         }
     }
 
     fun save(km: Int?, price: Double?, liter: Double?, timestamp: Long, onDone: () -> Unit) {
         val current = _reading.value ?: return
         viewModelScope.launch(Dispatchers.IO) {
-            dao.update(current.copy(km = km, price = price, liter = liter, timestamp = timestamp))
+            repo.update(current.copy(km = km, price = price, liter = liter, timestamp = timestamp))
             onDone()
         }
     }
