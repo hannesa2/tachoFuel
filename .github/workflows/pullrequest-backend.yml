@@ -1,0 +1,86 @@
+name: build backend
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  env-job:
+    runs-on: ubuntu-latest
+    outputs:
+      count-backend-changes: ${{ steps.env.outputs.CHANGED_BACKEND }}
+    name: Check modified files
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          submodules: false
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v41
+        with:
+          # Avoid using single or double quotes for multiline patterns
+          files: |
+            pi-backend/**
+            **/pullrequest-backend.yml
+      - name: List all changed files
+        run: |
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "$file was changed"
+          done
+      - name: Count all changed files
+        run: |
+          echo ${{ steps.changed-files.outputs.all_changed_and_modified_files_count }}
+          for file in ${{ steps.changed-files.outputs.all_changed_and_modified_files_count }}; do
+            echo "$file was changed"
+          done
+      - name: Sets CHANGED_BACKEND
+        id: env
+        run: |
+          count=$(echo ${{ steps.changed-files.outputs.all_changed_and_modified_files_count }})
+          echo "CHANGED_BACKEND=${count//\//-}" >> ${GITHUB_OUTPUT}
+          cat ${GITHUB_OUTPUT}
+
+  build-backend:
+    name: build-backend
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: pi-backend
+    needs:
+      - env-job
+    if: ${{ needs.env-job.outputs.count-backend-changes > 0 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ pi ]
+    steps:
+      - name: verbose
+        run: |
+          whoami
+          pwd
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          submodules: recursive
+      - name: Python version
+        run: python3 --version
+      - name: prepare
+        run: python3 -m pip install --upgrade pip
+      - name: Python version
+        run: python3 --version
+      - name: Install requirements
+        run: |
+          rm -rf venv/ || echo "nothing to do with delete old virtual environment"
+          python3 -m venv venv
+          source venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+      - name: Run backend
+        run: |
+          source venv/bin/activate
+          python3 ./piServer.py --dry-run

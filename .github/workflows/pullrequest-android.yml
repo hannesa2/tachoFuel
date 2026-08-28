@@ -1,0 +1,148 @@
+name: build Android
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+env:
+  resourceRunID: ${{ github.run_id }}-${{ github.run_number }}
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+
+jobs:
+  env-job:
+    runs-on: ubuntu-latest
+    outputs:
+      modified-branch-name: ${{ steps.env.outputs.MODIFIED_BRANCH_NAME }}
+    name: Modify branch name
+    steps:
+      - name: Sets MODIFIED_BRANCH_NAME
+        id: env
+        env:
+          name: "${{env.BRANCH_NAME}}"
+        run: |
+          echo "MODIFIED_BRANCH_NAME=${name//\//-}" >> ${GITHUB_OUTPUT}
+          cat ${GITHUB_OUTPUT}
+
+  Build:
+    name: Test Android
+    runs-on: ${{ matrix.os }}
+    needs:
+      - env-job
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ARM64 ]
+        api: [ 34 ]
+        abi: [ arm64-v8a ]
+        tag: [ 'google_apis' ]
+        java_version: [ 17 ]
+        emulatorApi: [ 14 ]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          submodules: false
+      - name: clone single submodule
+        run: |
+          git submodule update --init git-diff-image
+          git submodule update --init screenShotScript
+          git submodule update --init buildSrc
+      - name: show envs
+        run: |
+          echo ${{ needs.env-job.outputs.modified-branch-name }}
+      - name: Install JDK ${{ matrix.java_version }}
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'adopt'
+          java-version: ${{ matrix.java_version }}
+      - uses: gradle/actions/wrapper-validation@v6
+      - name: prepare
+        run: |
+          export PATH=/opt/homebrew/bin:$PATH
+          brew install exiftool imagemagick jq
+      - name: Install Android SDK
+        uses: hannesa2/action-android/install-sdk@0.17.0
+      - name: Decrypt keystore
+        run: ./signing/decrypt.sh
+        env:
+          CRYPT_PASS: ${{ secrets.CRYPT_PASS }}
+      - name: Run instrumentation tests
+        uses: hannesa2/action-android/emulator-run-cmd@0.17.0
+        with:
+          cmd: |
+            ./gradlew :app:connectedDebugAndroidTest --continue
+          api: ${{ matrix.api }}
+          tag: ${{ matrix.tag }}
+          abi: ${{ matrix.abi }}
+          cmdOptions: -noaudio -no-boot-anim -no-window -metrics-to-console
+          bootTimeout: 180 # seconds = 2 minutes
+        env:
+          CLASSIC_TOKEN: ${{ secrets.CLASSIC_TOKEN }}
+      - name: Archive screenshots
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: RaPiCar-Screenshots-${{ needs.env-job.outputs.modified-branch-name }}
+          path: |
+            app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected
+      - name: Archive Espresso results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: RaPiCar-Espresso-${{ needs.env-job.outputs.modified-branch-name }}
+          path: |
+            app/build/reports/androidTests/connected/debug
+
+      - name: Archive screenshots
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: RaspiCar-Screenshots-${{ matrix.api }}-${{ matrix.tag }}-${{ matrix.abi }}-${{ matrix.emulatorApi }}
+          path: |
+            app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected
+            app/build/outputs/androidTest-results/connected
+      - name: Compare screenshots
+        if: ${{ always() }}
+        env:
+          CLASSIC_TOKEN: ${{ secrets.CLASSIC_TOKEN }}
+          emulatorApi: ${{ matrix.emulatorApi }}
+          SCREENSHOT_USER: ${{ secrets.SCREENSHOT_USER }}
+          SCREENSHOT_PASSWORD: ${{ secrets.SCREENSHOT_PASSWORD }}
+        run: |
+          export PATH=/opt/homebrew/bin:$PATH
+          ls -ls app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected
+          cp app/build/outputs/connected_android_test_additional_output/debugAndroidTest/connected/emulator\(AVD\)\ -\ ${{ matrix.emulatorApi }}/* screenshotsToCompare${{ matrix.emulatorApi }}
+          echo "resourceRunID=${{ env.resourceRunID }}"
+          ./screenShotScript/screenShotCompare.sh ${{ env.resourceRunID }}
+      - name: Archive screenshots diffs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: RaspiCar-Screenshots-diffs-${{ matrix.api }}-${{ matrix.tag }}-${{ matrix.abi }}-${{ matrix.emulatorApi }}
+          path: |
+            screenshotDiffs
+      - name: Show git status
+        if: ${{ always() }}
+        run: |
+          ls -la artifacts
+          git add screenshotsToCompare${{ matrix.emulatorApi }}
+          git status
+          [ "$(git status -s -uno -- ':!CarND-Behavioral')" ] && exit 1 || exit 0
+
+      - name: gradle check
+        run: ./gradlew lintDebug # ktlintCheck
+      - name: Archive Lint report
+        uses: actions/upload-artifact@v7
+        if: ${{ always() }}
+        with:
+          name: RaspiCar-Lint-report-${{ needs.env-job.outputs.modified-branch-name }}
+          path: ./**/build/reports/lint-results*.html
+      - name: cleanup
+        run: ./signing/cleanup.sh
+#      - name: Show git status
+#        if: ${{ always() }}
+#        run: |
+#          git add screenshotsToCompare
+#          git status
+#          [ "$(git status -s -uno)" ] && exit 1 || exit 0
