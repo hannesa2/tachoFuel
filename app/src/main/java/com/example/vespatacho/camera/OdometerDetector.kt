@@ -30,13 +30,30 @@ object OdometerDetector {
 
         val rawText = visionText.text
 
-        // Search each OCR element independently to avoid merging unrelated numbers
-        // (e.g. speedometer scale digits concatenating with the odometer reading).
         val digitPattern = Regex("""\d{4,6}""")
-        val candidates = visionText.textBlocks
-            .flatMap { it.lines }
-            .flatMap { it.elements }
-            .flatMap { digitPattern.findAll(it.text.replace(Regex("\\s"), "")) }
+
+        val lines = visionText.textBlocks.flatMap { it.lines }
+        val vegliaIndex = lines.indexOfFirst { line ->
+            line.elements.any { it.text.contains("VEGLIA", ignoreCase = true) }
+        }
+
+        // Only consider lines that appear before VEGLIA in reading order — everything
+        // after the brand text belongs to the speedometer scale, not the odometer drum.
+        // If VEGLIA wasn't detected, search all lines as a fallback.
+        val odometerLines = if (vegliaIndex > 0) lines.subList(0, vegliaIndex) else lines
+
+        val candidates = odometerLines
+            .flatMap { line ->
+                // Join all elements in the line so a spaced reading like "2 8041E"
+                // becomes "28041E" before digit extraction.
+                val lineText = line.elements.joinToString("") { it.text }
+                val normalised = lineText
+                    .replace(Regex("\\s"), "")
+                    .replace('I', '1')
+                    .replace('l', '1')
+                    .replace(Regex("[^0-9]"), "")
+                digitPattern.findAll(normalised)
+            }
             .mapNotNull { it.value.toIntOrNull() }
             // Plausible odometer range: 0 – 999 999 km
             .filter { it in 0..999_999 }
