@@ -14,6 +14,9 @@ interface FuelReadingDao {
     @Query("SELECT * FROM fuel_readings ORDER BY timestamp DESC")
     fun getAll(): Flow<List<FuelReading>>
 
+    @Query("SELECT * FROM fuel_readings WHERE vehicleId = :vehicleId ORDER BY timestamp DESC")
+    fun getAllByVehicle(vehicleId: Long): Flow<List<FuelReading>>
+
     @Delete
     suspend fun delete(reading: FuelReading)
 }

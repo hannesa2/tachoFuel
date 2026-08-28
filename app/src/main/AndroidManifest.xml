@@ -28,6 +28,9 @@
         <activity
             android:name=".TankanzeigeActivity"
             android:screenOrientation="portrait" />
+        <activity
+            android:name=".VehicleManagementActivity"
+            android:screenOrientation="portrait" />
 
     </application>
 

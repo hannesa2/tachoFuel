@@ -4,12 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.vespatacho.ui.HomeScreen
+import com.example.vespatacho.ui.VehicleManagementScreen
 
-class MainActivity : ComponentActivity() {
+class VehicleManagementActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { HomeScreen() }
+        setContent { VehicleManagementScreen() }
     }
 }

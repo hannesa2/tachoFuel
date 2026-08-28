@@ -32,7 +32,7 @@ android {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.04.00")
+    val composeBom = platform("androidx.compose:compose-bom:2024.10.00")
     implementation(composeBom)
     implementation("com.github.AppDevNext.Logcat:LogcatCoreLib:3.6")
     implementation("androidx.compose.ui:ui")

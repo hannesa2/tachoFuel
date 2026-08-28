@@ -12,4 +12,5 @@ data class KmReading(
     val timestamp: Long = System.currentTimeMillis(),
     /** Raw OCR text returned by ML Kit for debugging. */
     val rawOcrText: String? = null,
+    val vehicleId: Long = 1,
 )

@@ -9,4 +9,5 @@ data class FuelReading(
     val price: Double,
     val liter: Double,
     val timestamp: Long = System.currentTimeMillis(),
+    val vehicleId: Long = 1,
 )

@@ -4,11 +4,11 @@ import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
-import android.media.ExifInterface
-import android.util.Log
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.example.vespatacho.camera.OdometerDetector
 import com.example.vespatacho.data.AppDatabase
@@ -25,11 +25,12 @@ import timber.log.Timber
 import java.io.File
 import java.util.concurrent.Executor
 
-class MainViewModel(app: Application) : AndroidViewModel(app) {
+class MainViewModel(app: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
 
     private val dao = AppDatabase.getInstance(app).kmReadingDao()
+    private val vehicleId: Long = savedStateHandle.get<Long>("vehicleId") ?: 1L
 
-    val readings = dao.getAll().stateIn(
+    val readings = dao.getAllByVehicle(vehicleId).stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
         emptyList(),
@@ -70,7 +71,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun processPhoto(photoFile: File) {
         val bitmap = withContext(Dispatchers.IO) { loadRotatedBitmap(photoFile) }
-        val lastKm = dao.getLatest()?.km
+        val lastKm = dao.getLatestByVehicle(vehicleId)?.km
         val result = OdometerDetector.detect(bitmap, lastKm)
         _captureState.value = if (result?.km != null) {
             Timber.d("Detected odometer reading: ${result.km}, OCR text: ${result.rawOcrText}")
@@ -83,7 +84,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun saveReading(km: Int, rawOcrText: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            dao.insert(KmReading(km = km, rawOcrText = rawOcrText))
+            dao.insert(KmReading(km = km, rawOcrText = rawOcrText, vehicleId = vehicleId))
             _captureState.value = CaptureState.Idle
         }
     }

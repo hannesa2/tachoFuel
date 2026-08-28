@@ -14,8 +14,14 @@ interface KmReadingDao {
     @Query("SELECT * FROM km_readings ORDER BY timestamp DESC")
     fun getAll(): Flow<List<KmReading>>
 
+    @Query("SELECT * FROM km_readings WHERE vehicleId = :vehicleId ORDER BY timestamp DESC")
+    fun getAllByVehicle(vehicleId: Long): Flow<List<KmReading>>
+
     @Query("SELECT * FROM km_readings ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatest(): KmReading?
+
+    @Query("SELECT * FROM km_readings WHERE vehicleId = :vehicleId ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLatestByVehicle(vehicleId: Long): KmReading?
 
     @Delete
     suspend fun delete(reading: KmReading)

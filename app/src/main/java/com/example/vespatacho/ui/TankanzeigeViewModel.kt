@@ -4,10 +4,11 @@ import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
-import android.media.ExifInterface
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.example.vespatacho.camera.FuelDetector
 import com.example.vespatacho.data.AppDatabase
@@ -23,11 +24,12 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.Executor
 
-class TankanzeigeViewModel(app: Application) : AndroidViewModel(app) {
+class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
 
     private val dao = AppDatabase.getInstance(app).fuelReadingDao()
+    private val vehicleId: Long = savedStateHandle.get<Long>("vehicleId") ?: 1L
 
-    val readings = dao.getAll().stateIn(
+    val readings = dao.getAllByVehicle(vehicleId).stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
         emptyList(),
@@ -70,11 +72,7 @@ class TankanzeigeViewModel(app: Application) : AndroidViewModel(app) {
         try {
             val bitmap = withContext(Dispatchers.IO) { loadRotatedBitmap(photoFile) }
             val detectedPrice = FuelDetector.detectPrice(bitmap)
-            _captureState.value = if (detectedPrice.isNotBlank()) {
-                CaptureState.Ready(detectedPrice)
-            } else {
-                CaptureState.Error("No fuel price found.")
-            }
+            _captureState.value = CaptureState.Ready(detectedPrice)
         } catch (e: Exception) {
             _captureState.value = CaptureState.Error(e.message ?: "Failed to analyse photo.")
         } finally {
@@ -84,7 +82,7 @@ class TankanzeigeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun saveReading(price: Double, liter: Double) {
         viewModelScope.launch(Dispatchers.IO) {
-            dao.insert(FuelReading(price = price, liter = liter))
+            dao.insert(FuelReading(price = price, liter = liter, vehicleId = vehicleId))
             _captureState.value = CaptureState.Idle
         }
     }
