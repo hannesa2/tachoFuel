@@ -64,7 +64,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.vespatacho.data.FuelReading
+import com.example.vespatacho.data.GasReading
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -286,8 +286,8 @@ private fun FuelInputOverlay(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FuelHistoryScreen(
-    readings: List<FuelReading>,
-    onDelete: (FuelReading) -> Unit,
+    readings: List<GasReading>,
+    onDelete: (GasReading) -> Unit,
     onBack: () -> Unit,
 ) {
     val fmt = remember { SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()) }
@@ -334,21 +334,30 @@ fun FuelHistoryScreen(
 }
 
 @Composable
-private fun FuelReadingCard(reading: FuelReading, dateStr: String, onDelete: () -> Unit) {
+private fun FuelReadingCard(reading: GasReading, dateStr: String, onDelete: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("€${"%.2f".format(reading.price)}", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text("${"%.2f".format(reading.liter)} l")
+                reading.price?.let {
+                    Text("€${"%.2f".format(it)}", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                } ?: Text("—", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                reading.liter?.let {
+                    Text("${"%.2f".format(it)} l")
+                }
+                reading.km?.let {
+                    Text("$it km")
+                }
                 Text(dateStr, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    "Gesamtkosten: €${"%.2f".format(reading.price)}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                reading.price?.let {
+                    Text(
+                        "Gesamtkosten: €${"%.2f".format(it)}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)

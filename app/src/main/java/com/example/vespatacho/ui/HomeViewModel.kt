@@ -5,7 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.vespatacho.data.AppDatabase
-import com.example.vespatacho.data.KmReading
+import com.example.vespatacho.data.GasReading
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,10 +17,9 @@ import kotlinx.coroutines.launch
 
 class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = app.getSharedPreferences("home_prefs", Context.MODE_PRIVATE)
-    private val kmDao = AppDatabase.getInstance(app).kmReadingDao()
-    private val vehicleDao = AppDatabase.getInstance(app).vehicleDao()
+    private val gasDao = AppDatabase.getInstance(app).gasReadingDao()
 
-    val vehicles = vehicleDao.getAll().stateIn(
+    val vehicles = AppDatabase.getInstance(app).vehicleDao().getAll().stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
         emptyList(),
@@ -34,10 +33,10 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         prefs.edit().putInt("last_vehicle_index", index).apply()
     }
 
-    fun kmReadingsForVehicle(vehicleId: Long): Flow<List<KmReading>> =
-        kmDao.getAllByVehicle(vehicleId)
+    fun kmReadingsForVehicle(vehicleId: Long): Flow<List<GasReading>> =
+        gasDao.getAllByVehicle(vehicleId)
 
-    fun deleteKmReading(reading: KmReading) {
-        viewModelScope.launch(Dispatchers.IO) { kmDao.delete(reading) }
+    fun deleteReading(reading: GasReading) {
+        viewModelScope.launch(Dispatchers.IO) { gasDao.delete(reading) }
     }
 }

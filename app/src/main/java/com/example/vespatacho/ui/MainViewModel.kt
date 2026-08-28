@@ -12,7 +12,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.example.vespatacho.camera.OdometerDetector
 import com.example.vespatacho.data.AppDatabase
-import com.example.vespatacho.data.KmReading
+import com.example.vespatacho.data.GasReading
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,7 +27,7 @@ import java.util.concurrent.Executor
 
 class MainViewModel(app: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
 
-    private val dao = AppDatabase.getInstance(app).kmReadingDao()
+    private val dao = AppDatabase.getInstance(app).gasReadingDao()
     private val vehicleId: Long = savedStateHandle.get<Long>("vehicleId") ?: 1L
 
     val readings = dao.getAllByVehicle(vehicleId).stateIn(
@@ -84,12 +84,17 @@ class MainViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andr
 
     fun saveReading(km: Int, rawOcrText: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            dao.insert(KmReading(km = km, rawOcrText = rawOcrText, vehicleId = vehicleId))
+            val latest = dao.getLatestByVehicle(vehicleId)
+            if (latest != null && latest.km == null) {
+                dao.update(latest.copy(km = km, rawOcrText = rawOcrText))
+            } else {
+                dao.insert(GasReading(vehicleId = vehicleId, km = km, rawOcrText = rawOcrText))
+            }
             _captureState.value = CaptureState.Idle
         }
     }
 
-    fun deleteReading(reading: KmReading) {
+    fun deleteReading(reading: GasReading) {
         viewModelScope.launch(Dispatchers.IO) { dao.delete(reading) }
     }
 

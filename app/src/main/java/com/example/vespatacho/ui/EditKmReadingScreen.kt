@@ -44,7 +44,7 @@ import java.util.Calendar
 fun EditKmReadingScreen(
     onSaved: () -> Unit,
     onCancel: () -> Unit,
-    viewModel: EditKmReadingViewModel = viewModel(),
+    viewModel: EditGasReadingViewModel = viewModel(),
 ) {
     val reading by viewModel.reading.collectAsState()
 
@@ -55,7 +55,9 @@ fun EditKmReadingScreen(
             if (reading == null) {
                 CircularProgressIndicator(modifier = Modifier.padding(padding))
             } else {
-                var kmText by remember(reading) { mutableStateOf(reading!!.km.toString()) }
+                var kmText by remember(reading) { mutableStateOf(reading!!.km?.toString() ?: "") }
+                var priceText by remember(reading) { mutableStateOf(reading!!.price?.toString() ?: "") }
+                var literText by remember(reading) { mutableStateOf(reading!!.liter?.toString() ?: "") }
                 var timestamp by remember(reading) { mutableLongStateOf(reading!!.timestamp) }
 
                 val cal = remember(timestamp) {
@@ -74,10 +76,8 @@ fun EditKmReadingScreen(
                 var showDatePicker by remember { mutableStateOf(false) }
                 var showTimePicker by remember { mutableStateOf(false) }
 
-                // Date picker — initialise to current timestamp in UTC millis (midnight)
                 val datePickerState = rememberDatePickerState(
                     initialSelectedDateMillis = run {
-                        // Strip time from timestamp to get UTC midnight for the picker
                         val utcCal = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
                         utcCal.timeInMillis = timestamp
                         utcCal.set(Calendar.HOUR_OF_DAY, 0)
@@ -114,11 +114,8 @@ fun EditKmReadingScreen(
                         confirmButton = {
                             TextButton(onClick = {
                                 showTimePicker = false
-                                // Combine selected date (UTC midnight) with selected time (local)
-                                val selectedDayMillis = datePickerState.selectedDateMillis
-                                    ?: timestamp
+                                val selectedDayMillis = datePickerState.selectedDateMillis ?: timestamp
                                 val newCal = Calendar.getInstance().apply {
-                                    // DatePicker gives UTC midnight — convert to local date
                                     val utcCal = Calendar.getInstance(
                                         java.util.TimeZone.getTimeZone("UTC"),
                                     ).apply { timeInMillis = selectedDayMillis }
@@ -140,6 +137,8 @@ fun EditKmReadingScreen(
                     )
                 }
 
+                fun String.toFlexibleDoubleOrNull(): Double? = replace(',', '.').toDoubleOrNull()
+
                 Column(
                     modifier = Modifier
                         .padding(padding)
@@ -151,6 +150,22 @@ fun EditKmReadingScreen(
                         onValueChange = { kmText = it.filter { c -> c.isDigit() } },
                         label = { Text("km") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = priceText,
+                        onValueChange = { priceText = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
+                        label = { Text("Preis (€)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = literText,
+                        onValueChange = { literText = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
+                        label = { Text("Liter") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -169,11 +184,14 @@ fun EditKmReadingScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(
                             onClick = {
-                                kmText.toIntOrNull()?.let { km ->
-                                    viewModel.save(km, timestamp, onSaved)
-                                }
+                                viewModel.save(
+                                    km = kmText.toIntOrNull(),
+                                    price = priceText.toFlexibleDoubleOrNull(),
+                                    liter = literText.toFlexibleDoubleOrNull(),
+                                    timestamp = timestamp,
+                                    onDone = onSaved,
+                                )
                             },
-                            enabled = kmText.isNotBlank(),
                             modifier = Modifier.weight(1f),
                         ) { Text("Speichern") }
                         OutlinedButton(

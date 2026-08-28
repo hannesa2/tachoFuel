@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.vespatacho.data.KmReading
+import com.example.vespatacho.data.GasReading
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Executors
@@ -232,11 +232,12 @@ private fun DetectedOverlay(km: Int, rawText: String, onSave: (Int, String) -> U
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
-    readings: List<KmReading>,
-    onDelete: (KmReading) -> Unit,
+    readings: List<GasReading>,
+    onDelete: (GasReading) -> Unit,
     onBack: () -> Unit,
 ) {
     val fmt = remember { SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()) }
+    val readingsWithKm = remember(readings) { readings.filter { it.km != null } }
 
     Scaffold(
         topBar = {
@@ -260,11 +261,10 @@ fun HistoryScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // Delta row at top showing total km driven
-                if (readings.size >= 2) {
+                if (readingsWithKm.size >= 2) {
                     item {
-                        val first = readings.last().km
-                        val last = readings.first().km
+                        val first = readingsWithKm.last().km!!
+                        val last = readingsWithKm.first().km!!
                         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                             Text(
                                 "Total recorded: ${last - first} km",
@@ -289,17 +289,18 @@ fun HistoryScreen(
 }
 
 @Composable
-private fun ReadingCard(reading: KmReading, prevKm: Int?, dateStr: String, onDelete: () -> Unit) {
+private fun ReadingCard(reading: GasReading, prevKm: Int?, dateStr: String, onDelete: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("${reading.km} km", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("${reading.km ?: "—"} km", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(dateStr, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                prevKm?.let {
-                    val delta = reading.km - it
+                val currentKm = reading.km
+                if (currentKm != null && prevKm != null) {
+                    val delta = currentKm - prevKm
                     if (delta != 0) {
                         Text(
                             "${if (delta > 0) "+" else ""}$delta km since previous",

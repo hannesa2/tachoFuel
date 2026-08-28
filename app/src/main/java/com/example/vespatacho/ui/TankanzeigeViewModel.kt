@@ -12,7 +12,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.example.vespatacho.camera.FuelDetector
 import com.example.vespatacho.data.AppDatabase
-import com.example.vespatacho.data.FuelReading
+import com.example.vespatacho.data.GasReading
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,7 +26,7 @@ import java.util.concurrent.Executor
 
 class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
 
-    private val dao = AppDatabase.getInstance(app).fuelReadingDao()
+    private val dao = AppDatabase.getInstance(app).gasReadingDao()
     private val vehicleId: Long = savedStateHandle.get<Long>("vehicleId") ?: 1L
 
     val readings = dao.getAllByVehicle(vehicleId).stateIn(
@@ -82,12 +82,17 @@ class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle)
 
     fun saveReading(price: Double, liter: Double) {
         viewModelScope.launch(Dispatchers.IO) {
-            dao.insert(FuelReading(price = price, liter = liter, vehicleId = vehicleId))
+            val latest = dao.getLatestByVehicle(vehicleId)
+            if (latest != null && latest.price == null && latest.liter == null) {
+                dao.update(latest.copy(price = price, liter = liter))
+            } else {
+                dao.insert(GasReading(vehicleId = vehicleId, price = price, liter = liter))
+            }
             _captureState.value = CaptureState.Idle
         }
     }
 
-    fun deleteReading(reading: FuelReading) {
+    fun deleteReading(reading: GasReading) {
         viewModelScope.launch(Dispatchers.IO) { dao.delete(reading) }
     }
 

@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.height
 import com.example.vespatacho.EditKmReadingActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -49,7 +52,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vespatacho.TachoActivity
 import com.example.vespatacho.TankanzeigeActivity
 import com.example.vespatacho.VehicleManagementActivity
-import com.example.vespatacho.data.KmReading
+import com.example.vespatacho.data.GasReading
 import com.example.vespatacho.data.Vehicle
 import kotlinx.coroutines.flow.Flow
 import java.text.SimpleDateFormat
@@ -127,7 +130,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                         VehicleTab(
                             vehicle = vehicle,
                             kmReadingsFlow = viewModel.kmReadingsForVehicle(vehicle.id),
-                            onDelete = viewModel::deleteKmReading,
+                            onDelete = viewModel::deleteReading,
                             onTacho = {
                                 context.startActivity(
                                     Intent(context, TachoActivity::class.java)
@@ -151,13 +154,19 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
 @Composable
 private fun VehicleTab(
     vehicle: Vehicle,
-    kmReadingsFlow: Flow<List<KmReading>>,
-    onDelete: (KmReading) -> Unit,
+    kmReadingsFlow: Flow<List<GasReading>>,
+    onDelete: (GasReading) -> Unit,
     onTacho: () -> Unit,
     onTankanzeige: () -> Unit,
 ) {
     val readings by kmReadingsFlow.collectAsState(initial = emptyList())
     val fmt = remember { SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()) }
+    val listState = rememberLazyListState()
+
+    // Scroll to top whenever a new record is added (list grows)
+    LaunchedEffect(readings.size) {
+        if (readings.isNotEmpty()) listState.animateScrollToItem(0)
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         if (readings.isEmpty()) {
@@ -171,6 +180,7 @@ private fun VehicleTab(
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -194,20 +204,34 @@ private fun VehicleTab(
             Button(onClick = onTacho, modifier = Modifier.weight(1f)) { Text("Tacho") }
             Button(onClick = onTankanzeige, modifier = Modifier.weight(1f)) { Text("Tankanzeige") }
         }
+
+        FuelConsumptionChart(
+            readings = readings,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+        )
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun HomeReadingCard(reading: KmReading, prevKm: Int?, dateStr: String, onDelete: () -> Unit) {
+private fun HomeReadingCard(reading: GasReading, prevKm: Int?, dateStr: String, onDelete: () -> Unit) {
     val context = LocalContext.current
     var showOptionsDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val title = buildString {
+        append(reading.km?.let { "$it km" } ?: "— km")
+        if (reading.price != null && reading.liter != null) {
+            append(" • €${"%.2f".format(reading.price)} / ${"%.2f".format(reading.liter)} l")
+        }
+    }
 
     if (showOptionsDialog) {
         AlertDialog(
             onDismissRequest = { showOptionsDialog = false },
-            title = { Text("${reading.km} km") },
+            title = { Text(title) },
             text = { Text("Was möchtest du tun?") },
             confirmButton = {
                 TextButton(onClick = {
@@ -230,7 +254,7 @@ private fun HomeReadingCard(reading: KmReading, prevKm: Int?, dateStr: String, o
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Eintrag löschen?") },
-            text = { Text("${reading.km} km vom $dateStr wirklich löschen?") },
+            text = { Text("$title vom $dateStr wirklich löschen?") },
             confirmButton = {
                 TextButton(onClick = { showDeleteDialog = false; onDelete() }) { Text("Löschen") }
             },
@@ -252,16 +276,22 @@ private fun HomeReadingCard(reading: KmReading, prevKm: Int?, dateStr: String, o
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text("${reading.km} km", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("${reading.km ?: "—"} km", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            if (reading.price != null && reading.liter != null) {
+                Text("€${"%.2f".format(reading.price)} • ${"%.2f".format(reading.liter)} l")
+            }
             Text(dateStr, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            prevKm?.let {
-                val delta = reading.km - it
+            val currentKm = reading.km
+            if (currentKm != null && prevKm != null) {
+                val delta = currentKm - prevKm
                 Text(
                     "${if (delta > 0) "+" else ""}$delta km seit vorherigem Eintrag",
                     color = if (delta >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     fontSize = 13.sp,
                 )
-            } ?: Text("Erster Eintrag", fontSize = 13.sp)
+            } else {
+                Text("Erster Eintrag", fontSize = 13.sp)
+            }
         }
     }
 }

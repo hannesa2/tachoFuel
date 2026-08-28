@@ -7,10 +7,9 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [KmReading::class, FuelReading::class, Vehicle::class], version = 3, exportSchema = false)
+@Database(entities = [Vehicle::class, GasReading::class], version = 4, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun kmReadingDao(): KmReadingDao
-    abstract fun fuelReadingDao(): FuelReadingDao
+    abstract fun gasReadingDao(): GasReadingDao
     abstract fun vehicleDao(): VehicleDao
 
     companion object {
@@ -32,6 +31,19 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE `fuel_readings` ADD COLUMN `vehicleId` INTEGER NOT NULL DEFAULT 1")
             }
         }
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `gas_readings` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `vehicleId` INTEGER NOT NULL DEFAULT 1, `km` INTEGER, `price` REAL, `liter` REAL, `rawOcrText` TEXT, `timestamp` INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "INSERT INTO `gas_readings` (`vehicleId`, `km`, `rawOcrText`, `timestamp`) SELECT `vehicleId`, `km`, `rawOcrText`, `timestamp` FROM `km_readings`",
+                )
+                db.execSQL(
+                    "INSERT INTO `gas_readings` (`vehicleId`, `price`, `liter`, `timestamp`) SELECT `vehicleId`, `price`, `liter`, `timestamp` FROM `fuel_readings`",
+                )
+            }
+        }
 
         fun getInstance(context: Context): AppDatabase =
             instance ?: synchronized(this) {
@@ -40,7 +52,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "vespa_tacho.db",
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { instance = it }
             }

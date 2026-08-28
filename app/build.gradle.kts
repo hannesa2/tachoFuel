@@ -28,7 +28,14 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += "-Xskip-metadata-version-check"
     }
+}
+
+configurations.all {
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.0")
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.0")
 }
 
 dependencies {
@@ -58,4 +65,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.7.1")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
+
+    // AndroidChart line chart
+    implementation("com.github.AppDevNext.AndroidChart:chartLib:5.2.4")
 }
