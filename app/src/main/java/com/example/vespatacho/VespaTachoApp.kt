@@ -4,6 +4,7 @@ import com.example.vespatacho.data.AppDatabase
 import com.example.vespatacho.data.DetectionSampleRepository
 import com.example.vespatacho.data.FirestoreRepository
 import com.example.vespatacho.data.GasReadingRepository
+import com.example.vespatacho.utils.CrashlyticSetup
 import info.hannes.logcat.LoggingApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,5 +36,6 @@ class VespaTachoApp : LoggingApplication() {
             repository.syncFromCloud()
             detectionSampleRepository.retryPendingUploads()
         }
+        CrashlyticSetup.init(contentResolver)
     }
 }
