@@ -144,6 +144,9 @@ dependencies {
     // AndroidChart line chart
     implementation("com.github.AppDevNext.AndroidChart:chartLib:5.2.4")
 
+    // GitHub in-app update checker
+    implementation("com.github.hannesa2:githubAppUpdate:2.4")
+
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:34.18.0"))
     implementation("com.google.firebase:firebase-firestore")
