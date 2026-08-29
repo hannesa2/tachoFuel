@@ -130,10 +130,10 @@ object FuelDetector {
             }
             // Cross-validate
             if (ppl != null && detectedLiter != null && detectedPrice != null) {
-                val expected = detectedLiter!! * ppl
-                if (abs(expected - detectedPrice!!) / detectedPrice!! > 0.15) {
-                    val swapped = detectedPrice!! * ppl
-                    if (abs(swapped - detectedLiter!!) / detectedLiter!! < 0.15) {
+                val expected = detectedLiter * ppl
+                if (abs(expected - detectedPrice) / detectedPrice > 0.15) {
+                    val swapped = detectedPrice * ppl
+                    if (abs(swapped - detectedLiter) / detectedLiter < 0.15) {
                         val tmp = detectedLiter; detectedLiter = detectedPrice; detectedPrice = tmp
                     }
                 }

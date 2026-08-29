@@ -33,7 +33,7 @@ fun FuelConsumptionChart(readings: List<GasReading>, modifier: Modifier = Modifi
             .sortedBy { it.timestamp }
         sorted.zipWithNext { prev, curr ->
             val kmDelta = (curr.km!! - prev.km!!).toFloat()
-            if (kmDelta > 0) Pair(curr.km!!.toLong(), (curr.liter!!.toFloat() / kmDelta) * 100f)
+            if (kmDelta > 0) Pair(curr.km.toLong(), (curr.liter!!.toFloat() / kmDelta) * 100f)
             else null
         }.filterNotNull()
     }
@@ -94,7 +94,7 @@ fun FuelConsumptionChart(readings: List<GasReading>, modifier: Modifier = Modifi
                 lineChart.lineData.notifyDataChanged()
                 lineChart.notifyDataSetChanged()
             } else {
-                val dataSet = LineDataSet<EntryFloat>(entries, "l/100km").apply {
+                val dataSet = LineDataSet(entries, "l/100km").apply {
                     lineMode = LineDataSet.Mode.CUBIC_BEZIER
                     cubicIntensity = 0.2f
                     lineWidth = 2f
