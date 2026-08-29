@@ -116,6 +116,7 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
     implementation(composeBom)
     implementation("com.github.AppDevNext.Logcat:LogcatCoreLib:3.6")
+    implementation("com.github.AppDevNext.Logcat:LogcatCrashlyticLib:3.6")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
