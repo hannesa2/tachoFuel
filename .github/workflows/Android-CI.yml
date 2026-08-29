@@ -72,7 +72,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java_version }}
-      - uses: gradle/wrapper-validation-action@v3
+      - uses: gradle/actions/wrapper-validation@v3.5.0
       - name: Install Android SDK
         uses: hannesa2/action-android/install-sdk@0.1.16.9
       - name: Decrypt keystore
