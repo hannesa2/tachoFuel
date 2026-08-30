@@ -68,8 +68,6 @@ class GasReadingRepository(
 
     // ── Cloud → Local sync ───────────────────────────────────────────────────
 
-    suspend fun seedFromDefaultIfEmpty() = firestore.seedFromDefaultIfEmpty()
-
     /**
      * Pulls records from Firestore that are missing locally and inserts them
      * into Room. Call once on app start.
