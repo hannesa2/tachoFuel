@@ -1,13 +1,13 @@
 package com.example.vespatacho.data
 
 import android.graphics.Bitmap
-import com.example.vespatacho.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
+import androidx.core.graphics.scale
 
 /**
  * Saves captured detection images to Room (local) and Firebase (cloud)
@@ -75,7 +75,7 @@ class DetectionSampleRepository(
 
     private suspend fun uploadToFirebase(sample: DetectionSample) {
         runCatching {
-            val uid = ensureUid() ?: return
+            val uid = ensureUid()
             val path = "detectionSamples/$uid/${sample.type}/${sample.timestamp}_${sample.id}.jpg"
 
             // Upload image to Firebase Storage
@@ -97,7 +97,7 @@ class DetectionSampleRepository(
         }
     }
 
-    private suspend fun ensureUid(): String? {
+    private fun ensureUid(): String? {
         val current = auth.currentUser
         if (current != null) return current.uid
         return runCatching {
@@ -110,12 +110,7 @@ class DetectionSampleRepository(
     private fun compressToMidRes(bitmap: Bitmap): ByteArray {
         val scale = MAX_IMAGE_PX.toFloat() / maxOf(bitmap.width, bitmap.height)
         val scaled = if (scale < 1f) {
-            Bitmap.createScaledBitmap(
-                bitmap,
-                (bitmap.width * scale).toInt(),
-                (bitmap.height * scale).toInt(),
-                true,
-            )
+            bitmap.scale((bitmap.width * scale).toInt(), (bitmap.height * scale).toInt())
         } else bitmap
 
         return ByteArrayOutputStream().use { out ->
