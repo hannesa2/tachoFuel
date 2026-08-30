@@ -23,6 +23,7 @@ class VespaTachoApp : LoggingApplication() {
             gasDao = database.gasReadingDao(),
             vehicleDao = database.vehicleDao(),
             firestore = FirestoreRepository(),
+            detectionSamples = detectionSampleRepository,
             scope = appScope,
         )
     }
@@ -36,6 +37,7 @@ class VespaTachoApp : LoggingApplication() {
         Utils.init(this)
         appScope.launch {
             repository.syncFromCloud()
+            detectionSampleRepository.syncFromCloud()
             detectionSampleRepository.retryPendingUploads()
         }
         CrashlyticSetup.init(contentResolver)

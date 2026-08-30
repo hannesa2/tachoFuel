@@ -48,6 +48,8 @@ class MainViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andr
     private val _captureState = MutableStateFlow<CaptureState>(CaptureState.Idle)
     val captureState: StateFlow<CaptureState> = _captureState.asStateFlow()
 
+    private val _pendingOdometerSampleId = MutableStateFlow<Long?>(null)
+
     fun captureAndAnalyse(imageCapture: ImageCapture, executor: Executor) {
         _captureState.value = CaptureState.Processing
 
@@ -75,14 +77,15 @@ class MainViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andr
         val bitmap = withContext(Dispatchers.IO) { loadRotatedBitmap(photoFile) }
         val lastKm = repo.getLatestByVehicle(vehicleId)?.km
         val result = OdometerDetector.detect(bitmap, lastKm)
-        // Save mid-res image + detection result for ML training data
-        sampleRepo.saveSample(
+        // Save mid-res image + detection result; link to reading after saving
+        val sampleId = sampleRepo.saveSample(
             bitmap = bitmap,
             type = DetectionSampleRepository.TYPE_ODOMETER,
             rawOcrText = result?.rawOcrTextKm ?: "",
             detectedKm = result?.km,
             vehicleId = vehicleId,
         )
+        _pendingOdometerSampleId.value = sampleId
         _captureState.value = if (result?.km != null) {
             Timber.d("Detected odometer reading: ${result.km}, OCR text: ${result.rawOcrTextKm}")
             CaptureState.Detected(result.km, result.rawOcrTextKm)
@@ -95,11 +98,14 @@ class MainViewModel(app: Application, savedStateHandle: SavedStateHandle) : Andr
     fun saveReading(km: Int, rawOcrTextKm: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val latest = repo.getLatestByVehicle(vehicleId)
-            if (latest != null && latest.km == null) {
+            val readingId = if (latest != null && latest.km == null) {
                 repo.update(latest.copy(km = km, rawOcrTextKm = rawOcrTextKm))
+                latest.id
             } else {
                 repo.insert(GasReading(vehicleId = vehicleId, km = km, rawOcrTextKm = rawOcrTextKm))
             }
+            _pendingOdometerSampleId.value?.let { sampleRepo.linkSampleToReading(it, readingId) }
+            _pendingOdometerSampleId.value = null
             _captureState.value = CaptureState.Idle
         }
     }

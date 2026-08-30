@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.Calendar
 
@@ -212,8 +213,8 @@ fun EditKmReadingScreen(
                     }
 
                     // ── OCR scan images (readonly) ───────────────────────────
+                    HorizontalDivider()
                     if (odometerImage != null || fuelImage != null) {
-                        HorizontalDivider()
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -239,6 +240,13 @@ fun EditKmReadingScreen(
                                 )
                             }
                         }
+                    } else {
+                        Text(
+                            "Keine Scan-Bilder vorhanden",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(vertical = 4.dp),
+                        )
                     }
 
                     // ── Raw OCR text (readonly) ──────────────────────────────

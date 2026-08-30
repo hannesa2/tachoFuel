@@ -15,6 +15,7 @@ class GasReadingRepository(
     private val gasDao: GasReadingDao,
     private val vehicleDao: VehicleDao,
     private val firestore: FirestoreRepository,
+    private val detectionSamples: DetectionSampleRepository? = null,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) {
 
@@ -42,7 +43,10 @@ class GasReadingRepository(
 
     suspend fun delete(reading: GasReading) {
         gasDao.delete(reading)
-        scope.launch { runCatching { firestore.deleteReading(reading) } }
+        scope.launch {
+            runCatching { firestore.deleteReading(reading) }
+            runCatching { detectionSamples?.deleteForReading(reading.id) }
+        }
     }
 
     // ── Vehicle ─────────────────────────────────────────────────────────────
