@@ -129,7 +129,7 @@ private fun DetectionSample.toMetadataMap(downloadUrl: String) = mapOf(
     "id" to id,
     "type" to type,
     "rawOcrText" to rawOcrText,
-    "detectedKm" to detectedKm,
+    "detectedKm" to detectedKm?.toLong(),   // Int → Long (Firestore doesn't support Int)
     "detectedPrice" to detectedPrice,
     "detectedLiter" to detectedLiter,
     "storageUrl" to downloadUrl,
