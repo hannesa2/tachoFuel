@@ -102,13 +102,14 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toGasReading(): GasRe
     } catch (_: Exception) { null }
 }
 
-internal fun Vehicle.toFirestoreMap() = mapOf<String, Any>("id" to id, "name" to name)
+internal fun Vehicle.toFirestoreMap() = mapOf<String, Any>("id" to id, "name" to name, "tankLiters" to tankLiters)
 
 private fun com.google.firebase.firestore.DocumentSnapshot.toVehicle(): Vehicle? {
     return try {
         Vehicle(
             id = getLong("id") ?: return null,
             name = getString("name") ?: return null,
+            tankLiters = getDouble("tankLiters") ?: 5.5,
         )
     } catch (_: Exception) { null }
 }

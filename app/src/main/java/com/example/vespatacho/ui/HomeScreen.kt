@@ -218,7 +218,8 @@ private fun VehicleTab(
                         reading = reading,
                         prevKm = readings.getOrNull(index + 1)?.km,
                         dateStr = fmt.format(Date(reading.timestamp)),
-                        estimatedRange = if (index == 0) estimatedRangeKm(readings) else null,
+                        estimatedRange = if (index == 0) estimatedRangeKm(readings, vehicle.tankLiters) else null,
+                        tankLiters = vehicle.tankLiters,
                         onDelete = { onDelete(reading) },
                     )
                 }
@@ -251,6 +252,7 @@ private fun HomeReadingCard(
     prevKm: Int?,
     dateStr: String,
     estimatedRange: Int?,
+    tankLiters: Double = 5.5,
     onDelete: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -335,7 +337,7 @@ private fun HomeReadingCard(
             if (estimatedRange != null) {
                 val emptyAtKm = reading.km?.let { it + estimatedRange }
                 Text(
-                    "~$estimatedRange km Reichweite (voller Tank, 2,5 l)",
+                    "~$estimatedRange km Reichweite (voller Tank, ${"%.1f".format(tankLiters)} l)",
                     color = MaterialTheme.colorScheme.secondary,
                     fontSize = 13.sp,
                 )
@@ -352,15 +354,12 @@ private fun HomeReadingCard(
     }
 }
 
-/** Tank size of the Vespa in litres. */
-private const val TANK_LITERS = 2.5
-
 /**
- * Estimates the range in km on a full [TANK_LITERS]-litre tank, based on
+ * Estimates the range in km on a full [tankLiters]-litre tank, based on
  * average consumption derived from all refuelling entries.
  * Returns null if there are fewer than two data points.
  */
-private fun estimatedRangeKm(readings: List<GasReading>): Int? {
+private fun estimatedRangeKm(readings: List<GasReading>, tankLiters: Double): Int? {
     val consumptions = readings.zipWithNext().mapNotNull { (curr, prev) ->
         val km = curr.km?.let { c -> prev.km?.let { p -> (c - p).toDouble() } } ?: return@mapNotNull null
         val liters = curr.liter ?: return@mapNotNull null
@@ -369,7 +368,7 @@ private fun estimatedRangeKm(readings: List<GasReading>): Int? {
     }
     if (consumptions.isEmpty()) return null
     val avgL100km = consumptions.average()
-    return (TANK_LITERS / avgL100km * 100.0).toInt()
+    return (tankLiters / avgL100km * 100.0).toInt()
 }
 
 /** Formats an Int km value with German thousands dot, e.g. 28281 → "28.281". */
