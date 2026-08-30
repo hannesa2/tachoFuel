@@ -20,7 +20,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.ElectricMoped
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
+import com.example.vespatacho.R
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Button
@@ -95,7 +98,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                         IconButton(onClick = {
                             context.startActivity(Intent(context, VehicleManagementActivity::class.java))
                         }) {
-                            Icon(Icons.Default.DirectionsCar, contentDescription = "Fahrzeuge verwalten")
+                            Icon(Icons.Default.ElectricMoped, contentDescription = "Fahrzeuge verwalten")
                         }
                         var menuExpanded by remember { mutableStateOf(false) }
                         IconButton(onClick = { menuExpanded = true }) {
