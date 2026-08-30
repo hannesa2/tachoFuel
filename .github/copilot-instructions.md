@@ -2,7 +2,7 @@
 
 ## Project overview
 
-**TachoFuel** is an Android app for tracking odometer readings and fuel expenses for a Vespa scooter (Veglia Borletti analogue odometer). It captures values via ML Kit OCR from the camera, stores them locally in Room, syncs to Firebase Firestore/Storage, and collects detection images for future ML training.
+**Vespa Tacho** is an Android app for tracking odometer readings and fuel expenses for a Vespa scooter (Veglia Borletti analogue odometer). It captures values via ML Kit OCR from the camera, stores them locally in Room, syncs to Firebase Firestore/Storage, and collects detection images for future ML training.
 
 **Real package name**: `info.hannes.vespatacho`  
 (Source files use `com.example.vespatacho` — do not change this.)

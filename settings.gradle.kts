@@ -17,6 +17,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "TachoFuel" +
+rootProject.name = "Vespa Tacho" +
         ""
 include(":app")

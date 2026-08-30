@@ -89,7 +89,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("🛵 TachoFuel") },
+                    title = { Text("🛵 Vespa Tacho") },
                     actions = {
                         IconButton(onClick = {
                             context.startActivity(Intent(context, VehicleManagementActivity::class.java))
