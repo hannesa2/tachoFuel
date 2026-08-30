@@ -1,5 +1,16 @@
+# ── R8 / Kotlin compatibility ─────────────────────────────────────────────────
+# Disable R8 code optimizations — they break Kotlin reified type parameters
+# inside Firebase Firestore SDK (causes "There is no way to get here" runtime crash).
+# Shrinking (dead code removal) and obfuscation (renaming) are still active.
+-dontoptimize
+
 # ── Kotlin ───────────────────────────────────────────────────────────────────
 -keep class kotlin.Metadata { *; }
+-keep class kotlin.jvm.internal.** { *; }
+-keepattributes RuntimeVisibleAnnotations
+-keepattributes RuntimeInvisibleAnnotations
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
 -dontwarn kotlin.**
 -keepclassmembers class **$WhenMappings {
     <fields>;
