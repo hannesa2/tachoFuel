@@ -75,7 +75,10 @@ class DetectionSampleRepository(
 
     private suspend fun uploadToFirebase(sample: DetectionSample) {
         runCatching {
-            val uid = ensureUid()
+            val uid = ensureUid() ?: run {
+                Timber.w("DetectionSample upload skipped — no UID available")
+                return
+            }
             val path = "detectionSamples/$uid/${sample.type}/${sample.timestamp}_${sample.id}.jpg"
 
             // Upload image to Firebase Storage
@@ -97,7 +100,7 @@ class DetectionSampleRepository(
         }
     }
 
-    private fun ensureUid(): String? {
+    private suspend fun ensureUid(): String? {
         val current = auth.currentUser
         if (current != null) return current.uid
         return runCatching {

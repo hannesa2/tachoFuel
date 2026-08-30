@@ -23,7 +23,7 @@ class FirestoreRepository {
 
     companion object {
         /** UID whose Firestore data is copied into a new empty installation. */
-        const val SEED_UID = "q6a03UpdpuVatxhrYgOe7ehNjuW2"
+        const val SEED_UID = "Lv4rXOuuk4XtvmHzv7Ub6DBpXx03"
     }
 
     /** Returns the current anonymous UID, signing in if needed. */
@@ -87,24 +87,35 @@ class FirestoreRepository {
     suspend fun seedFromDefaultIfEmpty() {
         runCatching {
             val uid = uid()
-            if (uid == SEED_UID) return  // already the seed user, nothing to copy
+            Timber.d("Seed: current UID = $uid  (SEED_UID = $SEED_UID)")
 
-            val existingReadings = readingsCollection().get().await()
-            if (!existingReadings.isEmpty) {
-                Timber.i("Seed: user already has data, skipping")
+            if (uid == SEED_UID) {
+                Timber.i("Seed: this IS the seed user — skipping copy")
                 return
             }
 
-            Timber.i("Seed: new empty user — copying data from seed UID")
+            val existingReadings = readingsCollection().get().await()
+            if (!existingReadings.isEmpty) {
+                Timber.i("Seed: user already has ${existingReadings.size()} readings — skipping")
+                return
+            }
+
+            Timber.i("Seed: new empty user — copying data from seed UID $SEED_UID")
             val seedReadings = db.collection("users").document(SEED_UID)
                 .collection("gasReadings").get().await()
             val seedVehicles = db.collection("users").document(SEED_UID)
                 .collection("vehicles").get().await()
 
+            Timber.d("Seed: found ${seedReadings.size()} readings + ${seedVehicles.size()} vehicles in seed")
+
+            if (seedReadings.isEmpty && seedVehicles.isEmpty) {
+                Timber.w("Seed: SEED_UID '$SEED_UID' has no data! " +
+                        "Update SEED_UID in FirestoreRepository to your debug UID shown above.")
+                return
+            }
+
             val batch = db.batch()
             val userRef = db.collection("users").document(uid)
-            // Re-serialize through typed mappers instead of passing doc.data raw —
-            // this guarantees only Firestore-safe types (Long not Int, etc.) reach the SDK.
             seedReadings.documents.forEach { doc ->
                 val reading = doc.toGasReading() ?: return@forEach
                 batch.set(userRef.collection("gasReadings").document(doc.id), reading.toFirestoreMap())
