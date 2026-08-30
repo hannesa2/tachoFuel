@@ -78,11 +78,14 @@ fun VehicleManagementScreen(viewModel: VehicleManagementViewModel = viewModel())
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = vehicle.name,
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.titleMedium,
-                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(text = vehicle.name, style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    text = "Tank: ${"%.1f".format(vehicle.tankLiters)} l",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                             IconButton(onClick = { editVehicle = vehicle }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Fahrzeug bearbeiten")
                             }
@@ -97,24 +100,26 @@ fun VehicleManagementScreen(viewModel: VehicleManagementViewModel = viewModel())
     }
 
     if (addDialogOpen) {
-        VehicleNameDialog(
+        VehicleDialog(
             title = "Fahrzeug hinzufügen",
             initialName = "",
+            initialTankLiters = 5.5,
             onDismiss = { addDialogOpen = false },
-            onConfirm = { name ->
-                viewModel.addVehicle(name)
+            onConfirm = { name, tank ->
+                viewModel.addVehicle(name, tank)
                 addDialogOpen = false
             },
         )
     }
 
     editVehicle?.let { vehicle ->
-        VehicleNameDialog(
+        VehicleDialog(
             title = "Fahrzeug bearbeiten",
             initialName = vehicle.name,
+            initialTankLiters = vehicle.tankLiters,
             onDismiss = { editVehicle = null },
-            onConfirm = { name ->
-                viewModel.updateVehicle(vehicle.copy(name = name))
+            onConfirm = { name, tank ->
+                viewModel.updateVehicle(vehicle.copy(name = name, tankLiters = tank))
                 editVehicle = null
             },
         )
@@ -122,37 +127,53 @@ fun VehicleManagementScreen(viewModel: VehicleManagementViewModel = viewModel())
 }
 
 @Composable
-private fun VehicleNameDialog(
+private fun VehicleDialog(
     title: String,
     initialName: String,
+    initialTankLiters: Double,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
+    onConfirm: (String, Double) -> Unit,
 ) {
     var name by remember(initialName) { mutableStateOf(initialName) }
+    var tankText by remember(initialTankLiters) { mutableStateOf("%.1f".format(initialTankLiters)) }
+    val tankValid = tankText.replace(',', '.').toDoubleOrNull()?.let { it > 0.0 } == true
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                label = { Text("Name") },
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    singleLine = true,
+                    label = { Text("Name") },
+                )
+                OutlinedTextField(
+                    value = tankText,
+                    onValueChange = { tankText = it },
+                    singleLine = true,
+                    label = { Text("Tankgröße (Liter)") },
+                    isError = !tankValid,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                    ),
+                )
+            }
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(name.trim()) },
-                enabled = name.trim().isNotEmpty(),
+                onClick = {
+                    val tank = tankText.replace(',', '.').toDoubleOrNull() ?: initialTankLiters
+                    onConfirm(name.trim(), tank)
+                },
+                enabled = name.trim().isNotEmpty() && tankValid,
             ) {
                 Text("OK")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
-            }
+            TextButton(onClick = onDismiss) { Text("Abbrechen") }
         },
     )
 }

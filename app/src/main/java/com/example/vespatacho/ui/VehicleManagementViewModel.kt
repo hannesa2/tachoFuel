@@ -14,8 +14,8 @@ class VehicleManagementViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = (app as com.example.vespatacho.VespaTachoApp).repository
     val vehicles = repo.getAllVehicles().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun addVehicle(name: String) {
-        viewModelScope.launch(Dispatchers.IO) { repo.insertVehicle(Vehicle(name = name)) }
+    fun addVehicle(name: String, tankLiters: Double = 5.5) {
+        viewModelScope.launch(Dispatchers.IO) { repo.insertVehicle(Vehicle(name = name, tankLiters = tankLiters)) }
     }
 
     fun updateVehicle(vehicle: Vehicle) {
