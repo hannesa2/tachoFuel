@@ -1,6 +1,7 @@
 package com.example.vespatacho.data
 
 import android.graphics.Bitmap
+import com.example.vespatacho.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
@@ -96,14 +97,7 @@ class DetectionSampleRepository(
         }
     }
 
-    private suspend fun ensureUid(): String? {
-        val current = auth.currentUser
-        if (current != null) return current.uid
-        return runCatching {
-            auth.signInAnonymously().await()
-            auth.currentUser?.uid
-        }.getOrNull()
-    }
+    private suspend fun ensureUid(): String = "q6a03UpdpuVatxhrYgOe7ehNjuW2"
 
     /** Scale bitmap down so the longest side ≤ MAX_IMAGE_PX, then JPEG-compress. */
     private fun compressToMidRes(bitmap: Bitmap): ByteArray {

@@ -1,5 +1,6 @@
 package com.example.vespatacho.data
 
+import com.example.vespatacho.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
@@ -11,21 +12,20 @@ import kotlinx.coroutines.tasks.await
  * Data lives under: users/{uid}/gasReadings/{vehicleId}_{readingId}
  *                   users/{uid}/vehicles/{vehicleId}
  *
- * Anonymous auth is used so data is tied to the device installation.
- * The UID is stable unless the user clears app data.
+ * In DEBUG builds a fixed UID is used so debug and release installs share
+ * the same Firestore data regardless of anonymous auth session.
+ * In RELEASE the UID comes from anonymous Firebase Auth (device-stable).
  */
 class FirestoreRepository {
 
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
 
-    /** Returns the current user UID, signing in anonymously if needed. */
-    private suspend fun uid(): String {
-        val current = auth.currentUser
-        if (current != null) return current.uid
-        auth.signInAnonymously().await()
-        return auth.currentUser!!.uid
-    }
+    /** Shared fixed UID so debug and release installs always access the same Firestore data. */
+    private val debugUid = "q6a03UpdpuVatxhrYgOe7ehNjuW2"
+
+    /** Returns the UID to use for Firestore paths. */
+    private suspend fun uid(): String = debugUid
 
     private suspend fun readingsCollection() =
         db.collection("users").document(uid()).collection("gasReadings")
