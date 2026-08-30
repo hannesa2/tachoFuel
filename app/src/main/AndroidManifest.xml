@@ -10,7 +10,7 @@
         android:name=".VespaTachoApp"
         android:allowBackup="true"
         android:label="@string/app_name"
-        android:theme="@style/Theme.VespaTacho"
+        android:theme="@style/Theme.VespaTacho.Splash"
         android:supportsRtl="true">
 
         <activity
