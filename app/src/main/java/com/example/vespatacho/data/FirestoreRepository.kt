@@ -44,7 +44,7 @@ class FirestoreRepository {
 
     suspend fun upsertReading(reading: GasReading) {
         val docId = "${reading.vehicleId}_${reading.id}"
-        readingsCollection().document(docId).set(reading.toMap(), SetOptions.merge()).await()
+        readingsCollection().document(docId).set(reading.toFirestoreMap(), SetOptions.merge()).await()
     }
 
     suspend fun deleteReading(reading: GasReading) {
@@ -63,7 +63,7 @@ class FirestoreRepository {
     // ── Vehicle ─────────────────────────────────────────────────────────────
 
     suspend fun upsertVehicle(vehicle: Vehicle) {
-        vehiclesCollection().document("${vehicle.id}").set(vehicle.toMap(), SetOptions.merge()).await()
+        vehiclesCollection().document("${vehicle.id}").set(vehicle.toFirestoreMap(), SetOptions.merge()).await()
     }
 
     suspend fun deleteVehicle(vehicle: Vehicle) {
@@ -103,11 +103,15 @@ class FirestoreRepository {
 
             val batch = db.batch()
             val userRef = db.collection("users").document(uid)
+            // Re-serialize through typed mappers instead of passing doc.data raw —
+            // this guarantees only Firestore-safe types (Long not Int, etc.) reach the SDK.
             seedReadings.documents.forEach { doc ->
-                batch.set(userRef.collection("gasReadings").document(doc.id), doc.data ?: return@forEach)
+                val reading = doc.toGasReading() ?: return@forEach
+                batch.set(userRef.collection("gasReadings").document(doc.id), reading.toFirestoreMap())
             }
             seedVehicles.documents.forEach { doc ->
-                batch.set(userRef.collection("vehicles").document(doc.id), doc.data ?: return@forEach)
+                val vehicle = doc.toVehicle() ?: return@forEach
+                batch.set(userRef.collection("vehicles").document(doc.id), vehicle.toFirestoreMap())
             }
             batch.commit().await()
             Timber.d("Seed: copied ${seedReadings.size()} readings + ${seedVehicles.size()} vehicles")
@@ -122,7 +126,7 @@ class FirestoreRepository {
 // Firestore supports: String, Long, Double, Boolean, Map, List, null, Timestamp, Blob.
 // Int/Integer is NOT supported — always cast Int to Long before writing.
 
-private fun GasReading.toMap(): Map<String, Any?> = buildMap {
+internal fun GasReading.toFirestoreMap(): Map<String, Any?> = buildMap {
     put("id", id)                           // Long ✓
     put("vehicleId", vehicleId)             // Long ✓
     put("km", km?.toLong())                 // Int → Long
@@ -148,7 +152,7 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toGasReading(): GasRe
     } catch (_: Exception) { null }
 }
 
-private fun Vehicle.toMap() = mapOf("id" to id, "name" to name)
+internal fun Vehicle.toFirestoreMap() = mapOf<String, Any>("id" to id, "name" to name)
 
 private fun com.google.firebase.firestore.DocumentSnapshot.toVehicle(): Vehicle? {
     return try {
