@@ -47,6 +47,8 @@ class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle)
     private val _captureState = MutableStateFlow<CaptureState>(CaptureState.Idle)
     val captureState: StateFlow<CaptureState> = _captureState.asStateFlow()
 
+    private val _pendingFuelSampleId = MutableStateFlow<Long?>(null)
+
     fun captureAndAnalyse(imageCapture: ImageCapture, executor: Executor) {
         _captureState.value = CaptureState.Processing
 
@@ -74,8 +76,7 @@ class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle)
         try {
             val bitmap = withContext(Dispatchers.IO) { loadRotatedBitmap(photoFile) }
             val result = FuelDetector.detect(bitmap)
-            // Save mid-res image + detection result for ML training data
-            sampleRepo.saveSample(
+            val sampleId = sampleRepo.saveSample(
                 bitmap = bitmap,
                 type = DetectionSampleRepository.TYPE_FUEL,
                 rawOcrText = result.rawOcrTextFuel,
@@ -83,6 +84,7 @@ class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle)
                 detectedLiter = result.liter.ifEmpty { null },
                 vehicleId = vehicleId,
             )
+            _pendingFuelSampleId.value = sampleId
             _captureState.value = CaptureState.Ready(result.price, result.liter, result.rawOcrTextFuel)
         } catch (e: Exception) {
             _captureState.value = CaptureState.Error(e.message ?: "Failed to analyse photo.")
@@ -94,11 +96,14 @@ class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle)
     fun saveReading(price: Double, liter: Double, rawOcrTextFuel: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val latest = repo.getLatestByVehicle(vehicleId)
-            if (latest != null && latest.price == null && latest.liter == null) {
+            val readingId = if (latest != null && latest.price == null && latest.liter == null) {
                 repo.update(latest.copy(price = price, liter = liter, rawOcrTextFuel = rawOcrTextFuel))
+                latest.id
             } else {
                 repo.insert(GasReading(vehicleId = vehicleId, price = price, liter = liter, rawOcrTextFuel = rawOcrTextFuel))
             }
+            _pendingFuelSampleId.value?.let { sampleRepo.linkSampleToReading(it, readingId) }
+            _pendingFuelSampleId.value = null
             _captureState.value = CaptureState.Idle
         }
     }

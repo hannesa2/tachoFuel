@@ -28,6 +28,8 @@ data class DetectionSample(
     val detectedLiter: String? = null,
     /** Firebase Storage download URL — filled after upload */
     val storageUrl: String? = null,
+    /** The GasReading this sample belongs to — set after the reading is saved. */
+    val readingId: Long? = null,
     val vehicleId: Long = 1,
     val timestamp: Long = System.currentTimeMillis(),
 ) {

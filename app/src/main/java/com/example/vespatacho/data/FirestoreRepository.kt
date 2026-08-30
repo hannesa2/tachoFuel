@@ -21,11 +21,13 @@ class FirestoreRepository {
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
 
-    /** Shared fixed UID so debug and release installs always access the same Firestore data. */
-    private val debugUid = "Lv4rXOuuk4XtvmHzv7Ub6DBpXx03"
+    companion object {
+        /** Shared fixed UID so all installs always access the same Firestore data. */
+        const val SHARED_UID = "Lv4rXOuuk4XtvmHzv7Ub6DBpXx03"
+    }
 
     /** Returns the UID to use for Firestore paths. */
-    private suspend fun uid(): String = debugUid
+    private suspend fun uid(): String = SHARED_UID
 
     private suspend fun readingsCollection() =
         db.collection("users").document(uid()).collection("gasReadings")
