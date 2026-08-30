@@ -21,8 +21,12 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,11 +53,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.vespatacho.BuildConfig
 import com.example.vespatacho.TachoActivity
 import com.example.vespatacho.TankanzeigeActivity
 import com.example.vespatacho.VehicleManagementActivity
 import com.example.vespatacho.data.GasReading
 import com.example.vespatacho.data.Vehicle
+import info.hannes.github.AppUpdateHelper
 import kotlinx.coroutines.flow.Flow
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -90,6 +96,29 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                             context.startActivity(Intent(context, VehicleManagementActivity::class.java))
                         }) {
                             Icon(Icons.Default.DirectionsCar, contentDescription = "Fahrzeuge verwalten")
+                        }
+                        var menuExpanded by remember { mutableStateOf(false) }
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Menü")
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Nach Update suchen") },
+                                leadingIcon = { Icon(Icons.Default.SystemUpdate, contentDescription = null) },
+                                onClick = {
+                                    menuExpanded = false
+                                    val activity = context as? androidx.appcompat.app.AppCompatActivity
+                                    if (activity != null) {
+                                        AppUpdateHelper.checkWithDialog(
+                                            activity,
+                                            BuildConfig.GIT_REPOSITORY,
+                                        )
+                                    }
+                                },
+                            )
                         }
                     },
                 )
