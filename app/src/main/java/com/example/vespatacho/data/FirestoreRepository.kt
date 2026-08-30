@@ -4,6 +4,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 
 /**
  * Handles all Firestore read/write operations.
@@ -11,15 +12,21 @@ import kotlinx.coroutines.tasks.await
  * Data lives under: users/{uid}/gasReadings/{vehicleId}_{readingId}
  *                   users/{uid}/vehicles/{vehicleId}
  *
- * Anonymous auth is used so data is tied to the device installation.
- * The UID is stable unless the user clears app data.
+ * On first install (empty Firestore tree) the data from [SEED_UID] is copied
+ * into the new user's collection so they start with the existing records.
+ * After that the user's own UID is used exclusively.
  */
 class FirestoreRepository {
 
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
 
-    /** Returns the current user UID, signing in anonymously if needed. */
+    companion object {
+        /** UID whose Firestore data is copied into a new empty installation. */
+        const val SEED_UID = "q6a03UpdpuVatxhrYgOe7ehNjuW2"
+    }
+
+    /** Returns the current anonymous UID, signing in if needed. */
     private suspend fun uid(): String {
         val current = auth.currentUser
         if (current != null) return current.uid
@@ -67,6 +74,45 @@ class FirestoreRepository {
         val snapshot = vehiclesCollection().get().await()
         return snapshot.documents.mapNotNull { doc ->
             doc.toVehicle()?.takeIf { it.id !in localIds }
+        }
+    }
+
+    // ── Seed: copy initial data for new empty installations ─────────────────
+
+    /**
+     * If the current user has no data in Firestore, copy all readings and
+     * vehicles from [SEED_UID] into their collection.
+     * This is a one-time migration for fresh installs.
+     */
+    suspend fun seedFromDefaultIfEmpty() {
+        runCatching {
+            val uid = uid()
+            if (uid == SEED_UID) return  // already the seed user, nothing to copy
+
+            val existingReadings = readingsCollection().get().await()
+            if (!existingReadings.isEmpty) {
+                Timber.d("Seed: user already has data, skipping")
+                return
+            }
+
+            Timber.d("Seed: new empty user — copying data from seed UID")
+            val seedReadings = db.collection("users").document(SEED_UID)
+                .collection("gasReadings").get().await()
+            val seedVehicles = db.collection("users").document(SEED_UID)
+                .collection("vehicles").get().await()
+
+            val batch = db.batch()
+            val userRef = db.collection("users").document(uid)
+            seedReadings.documents.forEach { doc ->
+                batch.set(userRef.collection("gasReadings").document(doc.id), doc.data ?: return@forEach)
+            }
+            seedVehicles.documents.forEach { doc ->
+                batch.set(userRef.collection("vehicles").document(doc.id), doc.data ?: return@forEach)
+            }
+            batch.commit().await()
+            Timber.d("Seed: copied ${seedReadings.size()} readings + ${seedVehicles.size()} vehicles")
+        }.onFailure {
+            Timber.w(it, "Seed copy failed — continuing without seed data")
         }
     }
 }
