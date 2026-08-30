@@ -82,3 +82,4 @@ sonar-branch.properties
 google-services.json
 keystore.properties
 *.keystore
+.kotlin
