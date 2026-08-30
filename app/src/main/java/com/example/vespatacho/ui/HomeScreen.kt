@@ -72,7 +72,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
     val selectedVehicleIndex by viewModel.selectedVehicleIndex.collectAsState()
 
     val safeIndex = if (vehicles.isEmpty()) 0 else selectedVehicleIndex.coerceAtMost(vehicles.lastIndex)
-    val pagerState = rememberPagerState(initialPage = safeIndex) { vehicles.size }
+    val pagerState = rememberPagerState(initialPage = selectedVehicleIndex) { vehicles.size }
 
     LaunchedEffect(pagerState.currentPage) {
         if (pagerState.currentPage != safeIndex) {
