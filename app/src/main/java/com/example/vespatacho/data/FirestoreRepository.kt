@@ -119,18 +119,15 @@ class FirestoreRepository {
 
 // ── Mapping helpers ──────────────────────────────────────────────────────────
 
-// Firestore supports: String, Long, Double, Boolean, Map, List, null, Timestamp, Blob.
-// Int/Integer is NOT supported — always cast Int to Long before writing.
-
-private fun GasReading.toMap(): Map<String, Any?> = buildMap {
-    put("id", id)                           // Long ✓
-    put("vehicleId", vehicleId)             // Long ✓
-    put("km", km?.toLong())                 // Int → Long
-    put("price", price)                     // Double? ✓
-    put("liter", liter)                     // Double? ✓
-    put("rawOcrTextKm", rawOcrTextKm)       // String? ✓
-    put("rawOcrTextFuel", rawOcrTextFuel)   // String? ✓
-    put("timestamp", timestamp)             // Long ✓
+private fun GasReading.toMap() = buildMap<String, Any?> {
+    put("id", id)
+    put("vehicleId", vehicleId)
+    put("km", km)
+    put("price", price)
+    put("liter", liter)
+    put("rawOcrTextKm", rawOcrTextKm)
+    put("rawOcrTextFuel", rawOcrTextFuel)
+    put("timestamp", timestamp)
 }
 
 private fun com.google.firebase.firestore.DocumentSnapshot.toGasReading(): GasReading? {
@@ -142,7 +139,7 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toGasReading(): GasRe
             price = getDouble("price"),
             liter = getDouble("liter"),
             rawOcrTextKm = getString("rawOcrTextKm"),
-            rawOcrTextFuel = getString("rawOcrTextFuel"),
+        rawOcrTextFuel = getString("rawOcrTextFuel"),
             timestamp = getLong("timestamp") ?: System.currentTimeMillis(),
         )
     } catch (_: Exception) { null }
