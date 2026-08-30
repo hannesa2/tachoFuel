@@ -96,7 +96,8 @@ android {
                 println("I run somewhere else and I use debug signing")
                 signingConfig = signingConfigs.findByName("debugCI")
             }
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles.addAll(
                 listOf(
                     getDefaultProguardFile("proguard-android-optimize.txt"),
