@@ -97,7 +97,14 @@ class DetectionSampleRepository(
         }
     }
 
-    private suspend fun ensureUid(): String = "q6a03UpdpuVatxhrYgOe7ehNjuW2"
+    private suspend fun ensureUid(): String? {
+        val current = auth.currentUser
+        if (current != null) return current.uid
+        return runCatching {
+            auth.signInAnonymously().await()
+            auth.currentUser?.uid
+        }.getOrNull()
+    }
 
     /** Scale bitmap down so the longest side ≤ MAX_IMAGE_PX, then JPEG-compress. */
     private fun compressToMidRes(bitmap: Bitmap): ByteArray {

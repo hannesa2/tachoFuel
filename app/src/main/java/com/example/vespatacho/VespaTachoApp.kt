@@ -33,6 +33,7 @@ class VespaTachoApp : LoggingApplication() {
     override fun onCreate() {
         super.onCreate()
         appScope.launch {
+            repository.seedFromDefaultIfEmpty()
             repository.syncFromCloud()
             detectionSampleRepository.retryPendingUploads()
         }
