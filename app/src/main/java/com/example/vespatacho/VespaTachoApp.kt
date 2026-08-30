@@ -5,6 +5,7 @@ import com.example.vespatacho.data.DetectionSampleRepository
 import com.example.vespatacho.data.FirestoreRepository
 import com.example.vespatacho.data.GasReadingRepository
 import com.example.vespatacho.utils.CrashlyticSetup
+import info.appdev.charting.utils.Utils
 import info.hannes.logcat.LoggingApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,7 @@ class VespaTachoApp : LoggingApplication() {
 
     override fun onCreate() {
         super.onCreate()
+        Utils.init(this)
         appScope.launch {
             repository.seedFromDefaultIfEmpty()
             repository.syncFromCloud()
