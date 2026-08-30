@@ -91,11 +91,11 @@ class FirestoreRepository {
 
             val existingReadings = readingsCollection().get().await()
             if (!existingReadings.isEmpty) {
-                Timber.d("Seed: user already has data, skipping")
+                Timber.i("Seed: user already has data, skipping")
                 return
             }
 
-            Timber.d("Seed: new empty user — copying data from seed UID")
+            Timber.i("Seed: new empty user — copying data from seed UID")
             val seedReadings = db.collection("users").document(SEED_UID)
                 .collection("gasReadings").get().await()
             val seedVehicles = db.collection("users").document(SEED_UID)
@@ -114,7 +114,7 @@ class FirestoreRepository {
                 batch.set(userRef.collection("vehicles").document(doc.id), vehicle.toFirestoreMap())
             }
             batch.commit().await()
-            Timber.d("Seed: copied ${seedReadings.size()} readings + ${seedVehicles.size()} vehicles")
+            Timber.i("Seed: copied ${seedReadings.size()} readings + ${seedVehicles.size()} vehicles")
         }.onFailure {
             Timber.w(it, "Seed copy failed — continuing without seed data")
         }
