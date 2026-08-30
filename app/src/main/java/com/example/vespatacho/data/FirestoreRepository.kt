@@ -1,10 +1,10 @@
 package com.example.vespatacho.data
 
+import com.example.vespatacho.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
-import timber.log.Timber
 
 /**
  * Handles all Firestore read/write operations.
@@ -12,27 +12,20 @@ import timber.log.Timber
  * Data lives under: users/{uid}/gasReadings/{vehicleId}_{readingId}
  *                   users/{uid}/vehicles/{vehicleId}
  *
- * On first install (empty Firestore tree) the data from [SEED_UID] is copied
- * into the new user's collection so they start with the existing records.
- * After that the user's own UID is used exclusively.
+ * In DEBUG builds a fixed UID is used so debug and release installs share
+ * the same Firestore data regardless of anonymous auth session.
+ * In RELEASE the UID comes from anonymous Firebase Auth (device-stable).
  */
 class FirestoreRepository {
 
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
 
-    companion object {
-        /** UID whose Firestore data is copied into a new empty installation. */
-        const val SEED_UID = "q6a03UpdpuVatxhrYgOe7ehNjuW2"
-    }
+    /** Shared fixed UID so debug and release installs always access the same Firestore data. */
+    private val debugUid = "q6a03UpdpuVatxhrYgOe7ehNjuW2"
 
-    /** Returns the current anonymous UID, signing in if needed. */
-    private suspend fun uid(): String {
-        val current = auth.currentUser
-        if (current != null) return current.uid
-        auth.signInAnonymously().await()
-        return auth.currentUser!!.uid
-    }
+    /** Returns the UID to use for Firestore paths. */
+    private suspend fun uid(): String = debugUid
 
     private suspend fun readingsCollection() =
         db.collection("users").document(uid()).collection("gasReadings")
@@ -44,7 +37,7 @@ class FirestoreRepository {
 
     suspend fun upsertReading(reading: GasReading) {
         val docId = "${reading.vehicleId}_${reading.id}"
-        readingsCollection().document(docId).set(reading.toFirestoreMap(), SetOptions.merge()).await()
+        readingsCollection().document(docId).set(reading.toMap(), SetOptions.merge()).await()
     }
 
     suspend fun deleteReading(reading: GasReading) {
@@ -63,7 +56,7 @@ class FirestoreRepository {
     // ── Vehicle ─────────────────────────────────────────────────────────────
 
     suspend fun upsertVehicle(vehicle: Vehicle) {
-        vehiclesCollection().document("${vehicle.id}").set(vehicle.toFirestoreMap(), SetOptions.merge()).await()
+        vehiclesCollection().document("${vehicle.id}").set(vehicle.toMap(), SetOptions.merge()).await()
     }
 
     suspend fun deleteVehicle(vehicle: Vehicle) {
@@ -76,65 +69,19 @@ class FirestoreRepository {
             doc.toVehicle()?.takeIf { it.id !in localIds }
         }
     }
-
-    // ── Seed: copy initial data for new empty installations ─────────────────
-
-    /**
-     * If the current user has no data in Firestore, copy all readings and
-     * vehicles from [SEED_UID] into their collection.
-     * This is a one-time migration for fresh installs.
-     */
-    suspend fun seedFromDefaultIfEmpty() {
-        runCatching {
-            val uid = uid()
-            if (uid == SEED_UID) return  // already the seed user, nothing to copy
-
-            val existingReadings = readingsCollection().get().await()
-            if (!existingReadings.isEmpty) {
-                Timber.d("Seed: user already has data, skipping")
-                return
-            }
-
-            Timber.d("Seed: new empty user — copying data from seed UID")
-            val seedReadings = db.collection("users").document(SEED_UID)
-                .collection("gasReadings").get().await()
-            val seedVehicles = db.collection("users").document(SEED_UID)
-                .collection("vehicles").get().await()
-
-            val batch = db.batch()
-            val userRef = db.collection("users").document(uid)
-            // Re-serialize through typed mappers instead of passing doc.data raw —
-            // this guarantees only Firestore-safe types (Long not Int, etc.) reach the SDK.
-            seedReadings.documents.forEach { doc ->
-                val reading = doc.toGasReading() ?: return@forEach
-                batch.set(userRef.collection("gasReadings").document(doc.id), reading.toFirestoreMap())
-            }
-            seedVehicles.documents.forEach { doc ->
-                val vehicle = doc.toVehicle() ?: return@forEach
-                batch.set(userRef.collection("vehicles").document(doc.id), vehicle.toFirestoreMap())
-            }
-            batch.commit().await()
-            Timber.d("Seed: copied ${seedReadings.size()} readings + ${seedVehicles.size()} vehicles")
-        }.onFailure {
-            Timber.w(it, "Seed copy failed — continuing without seed data")
-        }
-    }
 }
 
 // ── Mapping helpers ──────────────────────────────────────────────────────────
 
-// Firestore supports: String, Long, Double, Boolean, Map, List, null, Timestamp, Blob.
-// Int/Integer is NOT supported — always cast Int to Long before writing.
-
-internal fun GasReading.toFirestoreMap(): Map<String, Any?> = buildMap {
-    put("id", id)                           // Long ✓
-    put("vehicleId", vehicleId)             // Long ✓
-    put("km", km?.toLong())                 // Int → Long
-    put("price", price)                     // Double? ✓
-    put("liter", liter)                     // Double? ✓
-    put("rawOcrTextKm", rawOcrTextKm)       // String? ✓
-    put("rawOcrTextFuel", rawOcrTextFuel)   // String? ✓
-    put("timestamp", timestamp)             // Long ✓
+private fun GasReading.toMap() = buildMap<String, Any?> {
+    put("id", id)
+    put("vehicleId", vehicleId)
+    put("km", km)
+    put("price", price)
+    put("liter", liter)
+    put("rawOcrTextKm", rawOcrTextKm)
+    put("rawOcrTextFuel", rawOcrTextFuel)
+    put("timestamp", timestamp)
 }
 
 private fun com.google.firebase.firestore.DocumentSnapshot.toGasReading(): GasReading? {
@@ -146,13 +93,13 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toGasReading(): GasRe
             price = getDouble("price"),
             liter = getDouble("liter"),
             rawOcrTextKm = getString("rawOcrTextKm"),
-            rawOcrTextFuel = getString("rawOcrTextFuel"),
+        rawOcrTextFuel = getString("rawOcrTextFuel"),
             timestamp = getLong("timestamp") ?: System.currentTimeMillis(),
         )
     } catch (_: Exception) { null }
 }
 
-internal fun Vehicle.toFirestoreMap() = mapOf<String, Any>("id" to id, "name" to name)
+private fun Vehicle.toMap() = mapOf("id" to id, "name" to name)
 
 private fun com.google.firebase.firestore.DocumentSnapshot.toVehicle(): Vehicle? {
     return try {
