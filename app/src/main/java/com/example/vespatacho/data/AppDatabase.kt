@@ -98,7 +98,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_9_10 = object : Migration(9, 10) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE `detection_samples` ADD COLUMN `readingId` INTEGER")
+                // readingId was already added in MIGRATION_7_8 — no-op
             }
         }
 
