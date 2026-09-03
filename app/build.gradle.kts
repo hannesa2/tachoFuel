@@ -115,6 +115,7 @@ configurations.all {
 }
 
 dependencies {
+    implementation("com.google.mlkit:pose-detection-accurate:17.0.0")
     val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
     implementation(composeBom)
     implementation("com.github.AppDevNext.Logcat:LogcatCoreLib:3.6")
@@ -134,8 +135,22 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.3")
     implementation("androidx.camera:camera-view:1.3.3")
 
-    // ML Kit — on-device text recognition (no network needed)
+    implementation("com.google.mlkit:object-detection-custom:17.0.2")
+    implementation("com.google.guava:guava:33.4.8-android")
+    implementation("androidx.constraintlayout:constraintlayout:2.2.1")
+    // ML Kit — on-device text recognition and the optional demo detectors used by the sample camera activity
     implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
+    implementation("com.google.mlkit:text-recognition-devanagari:16.0.0")
+    implementation("com.google.mlkit:text-recognition-japanese:16.0.0")
+    implementation("com.google.mlkit:text-recognition-korean:16.0.0")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation("com.google.mlkit:face-detection:16.1.7")
+    implementation("com.google.mlkit:image-labeling:17.0.8")
+    implementation("com.google.mlkit:object-detection:17.0.0")
+    implementation("com.google.mlkit:pose-detection:18.0.0-beta5")
+    implementation("com.google.mlkit:segmentation-selfie:16.0.0-beta6")
+    implementation("androidx.appcompat:appcompat:1.7.1")
 
     // Room
     implementation("androidx.room:room-runtime:2.8.4")

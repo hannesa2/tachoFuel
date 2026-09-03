@@ -28,6 +28,9 @@
             android:name=".TachoActivity"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".mlkit.GasStationCameraXActivity"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".GasStationActivity"
             android:screenOrientation="portrait" />
         <activity
