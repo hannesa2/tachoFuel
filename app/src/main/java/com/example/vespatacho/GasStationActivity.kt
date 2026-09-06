@@ -4,12 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.vespatacho.ui.TankanzeigeApp
+import com.example.vespatacho.ui.GasStationApp
 
-class TankanzeigeActivity : ComponentActivity() {
+class GasStationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { TankanzeigeApp(onSaved = { finish() }) }
+        setContent { GasStationApp(onSaved = { finish() }) }
     }
 }

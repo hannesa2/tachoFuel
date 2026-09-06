@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vespatacho.BuildConfig
 import com.example.vespatacho.TachoActivity
-import com.example.vespatacho.TankanzeigeActivity
+import com.example.vespatacho.GasStationActivity
 import com.example.vespatacho.VehicleManagementActivity
 import com.example.vespatacho.data.GasReading
 import com.example.vespatacho.data.Vehicle
@@ -167,7 +167,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                             },
                             onTankanzeige = {
                                 context.startActivity(
-                                    Intent(context, TankanzeigeActivity::class.java)
+                                    Intent(context, GasStationActivity::class.java)
                                         .putExtra("vehicleId", vehicle.id),
                                 )
                             },

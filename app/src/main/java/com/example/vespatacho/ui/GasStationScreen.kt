@@ -71,7 +71,7 @@ import java.util.Locale
 import java.util.concurrent.Executors
 
 @Composable
-fun TankanzeigeApp(onSaved: () -> Unit = {}, viewModel: TankanzeigeViewModel = viewModel()) {
+fun GasStationApp(onSaved: () -> Unit = {}, viewModel: GasStationViewModel = viewModel()) {
     var showHistory by remember { mutableStateOf(false) }
     val captureState by viewModel.captureState.collectAsState()
     val readings by viewModel.readings.collectAsState()
@@ -98,7 +98,7 @@ fun TankanzeigeApp(onSaved: () -> Unit = {}, viewModel: TankanzeigeViewModel = v
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CameraFuelScreen(
-    captureState: TankanzeigeViewModel.CaptureState,
+    captureState: GasStationViewModel.CaptureState,
     onCapture: (ImageCapture, java.util.concurrent.Executor) -> Unit,
     onSave: (Double, Double, String) -> Unit,
     onDiscard: () -> Unit,
@@ -189,16 +189,16 @@ fun CameraFuelScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 when (val state = captureState) {
-                    is TankanzeigeViewModel.CaptureState.Idle -> {
+                    is GasStationViewModel.CaptureState.Idle -> {
                         FloatingActionButton(onClick = { onCapture(imageCapture, executor) }) {
                             Icon(Icons.Default.CameraAlt, contentDescription = "Take photo")
                         }
                     }
-                    is TankanzeigeViewModel.CaptureState.Processing -> {
+                    is GasStationViewModel.CaptureState.Processing -> {
                         CircularProgressIndicator(color = Color.White)
                         Text("Detecting fuel price…", color = Color.White)
                     }
-                    is TankanzeigeViewModel.CaptureState.Ready -> {
+                    is GasStationViewModel.CaptureState.Ready -> {
                         FuelInputOverlay(
                             detectedPrice = state.detectedPrice,
                             detectedLiter = state.detectedLiter,
@@ -207,7 +207,7 @@ fun CameraFuelScreen(
                             onDiscard = onDiscard,
                         )
                     }
-                    is TankanzeigeViewModel.CaptureState.Error -> {
+                    is GasStationViewModel.CaptureState.Error -> {
                         Text(state.message, color = Color.Red, textAlign = TextAlign.Center)
                         TextButton(onClick = onDiscard) { Text("Retry", color = Color.White) }
                     }

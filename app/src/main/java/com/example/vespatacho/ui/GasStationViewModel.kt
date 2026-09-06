@@ -11,7 +11,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.example.vespatacho.camera.FuelDetector
-import com.example.vespatacho.data.AppDatabase
 import com.example.vespatacho.data.DetectionSampleRepository
 import com.example.vespatacho.data.GasReading
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +24,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.Executor
 
-class TankanzeigeViewModel(app: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
+class GasStationViewModel(app: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(app) {
 
     private val repo = (app as com.example.vespatacho.VespaTachoApp).repository
     private val sampleRepo = (app as com.example.vespatacho.VespaTachoApp).detectionSampleRepository

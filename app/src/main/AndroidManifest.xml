@@ -28,7 +28,7 @@
             android:name=".TachoActivity"
             android:screenOrientation="portrait" />
         <activity
-            android:name=".TankanzeigeActivity"
+            android:name=".GasStationActivity"
             android:screenOrientation="portrait" />
         <activity
             android:name=".VehicleManagementActivity"
