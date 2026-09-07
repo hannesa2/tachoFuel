@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.io.File
 import java.util.concurrent.Executor
 
@@ -48,6 +49,92 @@ class GasStationViewModel(app: Application, savedStateHandle: SavedStateHandle) 
 
     private val _pendingFuelSampleId = MutableStateFlow<Long?>(null)
 
+    // ── Continuous live-preview detection (used by GasStationCameraXActivity) ──────────────
+    data class LiveDetection(val price: String, val liter: String, val rawOcrTextFuel: String)
+
+    private val _liveDetection = MutableStateFlow(LiveDetection("", "", ""))
+    val liveDetection: StateFlow<LiveDetection> = _liveDetection.asStateFlow()
+
+    private var lastLiveBitmap: Bitmap? = null
+    private var liveAnalysisInFlight = false
+
+    /**
+     * Immediately updates just the price in [liveDetection], leaving liter/rawOcrTextFuel
+     * untouched. Called from [com.example.vespatacho.mlkit.textdetector.TextRecProcessor] as
+     * soon as a live OCR line ending in "e"/"E"/"€" (the price panel label) is recognised,
+     * independent of and faster than the throttled [analyseLivePreviewFrame].
+     */
+    fun updateDetectedPrice(price: String) {
+        if (price.isBlank()) return
+        Timber.d("updateDetectedPrice: $price")
+        _liveDetection.value = _liveDetection.value.copy(price = price)
+    }
+
+    /**
+     * Immediately updates just the liter value in [liveDetection], leaving price/rawOcrTextFuel
+     * untouched. Called from [com.example.vespatacho.mlkit.textdetector.TextRecProcessor] as
+     * soon as the live OCR stream finds the digits + "Liter" label, independent of and faster
+     * than the throttled [analyseLivePreviewFrame].
+     */
+    fun updateDetectedLiter(liter: String) {
+        if (liter.isBlank()) return
+        Timber.d("updateDetectedLiter: $liter")
+        _liveDetection.value = _liveDetection.value.copy(liter = liter)
+    }
+
+    /**
+     * Runs [FuelDetector] on a bitmap grabbed from a live CameraX analysis frame and publishes
+     * the result via [liveDetection] so the UI can show auto-filled, continuously-updating
+     * price/liter fields without requiring an explicit capture button press.
+     *
+     * Unlike [analyseLiveFrame]/[captureAndAnalyse], this does *not* persist a
+     * [com.example.vespatacho.data.DetectionSample] on every call (that would spam the DB and
+     * Firebase Storage many times per second); the last analysed bitmap is only saved as a
+     * sample once the user confirms with [saveLiveReading].
+     */
+    fun analyseLivePreviewFrame(bitmap: Bitmap) {
+        if (liveAnalysisInFlight) return
+        liveAnalysisInFlight = true
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                val result = FuelDetector.detect(bitmap)
+                lastLiveBitmap = bitmap
+                // Merge rather than replace: a frame with no plausible match returns "" for
+                // that field, which must not erase a value already confirmed by a previous
+                // frame or by the live OCR autofill (updateDetectedPrice/updateDetectedLiter).
+                val previous = _liveDetection.value
+                _liveDetection.value = LiveDetection(
+                    price = result.price.ifBlank { previous.price },
+                    liter = result.liter.ifBlank { previous.liter },
+                    rawOcrTextFuel = result.rawOcrTextFuel.ifBlank { previous.rawOcrTextFuel },
+                )
+            } catch (e: Exception) {
+                Timber.w(e, "Live frame analysis failed")
+            } finally {
+                liveAnalysisInFlight = false
+            }
+        }
+    }
+
+    /** Persists the user-confirmed price/liter from the live-preview flow. */
+    fun saveLiveReading(price: Double, liter: Double, rawOcrTextFuel: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val bitmap = lastLiveBitmap
+            val sampleId = bitmap?.let {
+                sampleRepo.saveSample(
+                    bitmap = it,
+                    type = DetectionSampleRepository.TYPE_FUEL,
+                    rawOcrText = rawOcrTextFuel,
+                    detectedPrice = price.toString(),
+                    detectedLiter = liter.toString(),
+                    vehicleId = vehicleId,
+                )
+            }
+            val readingId = persistReading(price, liter, rawOcrTextFuel)
+            sampleId?.let { sampleRepo.linkSampleToReading(it, readingId) }
+        }
+    }
+
     fun captureAndAnalyse(imageCapture: ImageCapture, executor: Executor) {
         _captureState.value = CaptureState.Processing
 
@@ -74,6 +161,14 @@ class GasStationViewModel(app: Application, savedStateHandle: SavedStateHandle) 
     private suspend fun processPhoto(photoFile: File) {
         try {
             val bitmap = withContext(Dispatchers.IO) { loadRotatedBitmap(photoFile) }
+            analyseBitmap(bitmap)
+        } finally {
+            photoFile.delete()
+        }
+    }
+
+    private suspend fun analyseBitmap(bitmap: Bitmap) {
+        try {
             val result = FuelDetector.detect(bitmap)
             val sampleId = sampleRepo.saveSample(
                 bitmap = bitmap,
@@ -87,23 +182,25 @@ class GasStationViewModel(app: Application, savedStateHandle: SavedStateHandle) 
             _captureState.value = CaptureState.Ready(result.price, result.liter, result.rawOcrTextFuel)
         } catch (e: Exception) {
             _captureState.value = CaptureState.Error(e.message ?: "Failed to analyse photo.")
-        } finally {
-            photoFile.delete()
         }
     }
 
     fun saveReading(price: Double, liter: Double, rawOcrTextFuel: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            val latest = repo.getLatestByVehicle(vehicleId)
-            val readingId = if (latest != null && latest.price == null && latest.liter == null) {
-                repo.update(latest.copy(price = price, liter = liter, rawOcrTextFuel = rawOcrTextFuel))
-                latest.id
-            } else {
-                repo.insert(GasReading(vehicleId = vehicleId, price = price, liter = liter, rawOcrTextFuel = rawOcrTextFuel))
-            }
+            val readingId = persistReading(price, liter, rawOcrTextFuel)
             _pendingFuelSampleId.value?.let { sampleRepo.linkSampleToReading(it, readingId) }
             _pendingFuelSampleId.value = null
             _captureState.value = CaptureState.Idle
+        }
+    }
+
+    private suspend fun persistReading(price: Double, liter: Double, rawOcrTextFuel: String): Long {
+        val latest = repo.getLatestByVehicle(vehicleId)
+        return if (latest != null && latest.price == null && latest.liter == null) {
+            repo.update(latest.copy(price = price, liter = liter, rawOcrTextFuel = rawOcrTextFuel))
+            latest.id
+        } else {
+            repo.insert(GasReading(vehicleId = vehicleId, price = price, liter = liter, rawOcrTextFuel = rawOcrTextFuel))
         }
     }
 

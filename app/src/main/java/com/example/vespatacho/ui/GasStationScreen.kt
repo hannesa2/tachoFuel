@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -183,7 +184,7 @@ fun CameraFuelScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.5f))
+                    .background(Color.Black.copy(alpha = 0.25f))
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -218,15 +219,25 @@ fun CameraFuelScreen(
 }
 
 @Composable
-private fun FuelInputOverlay(
+fun FuelInputOverlay(
     detectedPrice: String,
     detectedLiter: String,
     rawOcrTextFuel: String,
     onSave: (Double, Double, String) -> Unit,
     onDiscard: () -> Unit,
 ) {
-    var price by remember(detectedPrice) { mutableStateOf(detectedPrice) }
-    var liter by remember(detectedLiter) { mutableStateOf(detectedLiter) }
+    var price by remember { mutableStateOf(detectedPrice) }
+    var liter by remember { mutableStateOf(detectedLiter) }
+    // Once the user edits a field manually, stop overwriting it with new (live) detections.
+    var priceEditedByUser by remember { mutableStateOf(false) }
+    var literEditedByUser by remember { mutableStateOf(false) }
+
+    LaunchedEffect(detectedPrice) {
+        if (!priceEditedByUser) price = detectedPrice
+    }
+    LaunchedEffect(detectedLiter) {
+        if (!literEditedByUser) liter = detectedLiter
+    }
 
     fun String.toDoubleOrNullFlexible(): Double? = replace(',', '.').toDoubleOrNull()
 
@@ -234,7 +245,7 @@ private fun FuelInputOverlay(
         Text("Erkannte Tankdaten:", color = Color.White, fontSize = 14.sp)
         Surface(
             shape = RoundedCornerShape(8.dp),
-            color = Color.Black.copy(alpha = 0.7f),
+            color = Color.Black.copy(alpha = 0.35f),
         ) {
             Column(
                 modifier = Modifier.padding(12.dp),
@@ -242,7 +253,10 @@ private fun FuelInputOverlay(
             ) {
                 OutlinedTextField(
                     value = price,
-                    onValueChange = { price = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
+                    onValueChange = {
+                        priceEditedByUser = true
+                        price = it.filter { c -> c.isDigit() || c == '.' || c == ',' }
+                    },
                     label = { Text("Preis (€)", color = Color.White) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -256,7 +270,10 @@ private fun FuelInputOverlay(
                 )
                 OutlinedTextField(
                     value = liter,
-                    onValueChange = { liter = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
+                    onValueChange = {
+                        literEditedByUser = true
+                        liter = it.filter { c -> c.isDigit() || c == '.' || c == ',' }
+                    },
                     label = { Text("Liter", color = Color.White) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -277,6 +294,10 @@ private fun FuelInputOverlay(
                     if (parsedPrice != null && parsedLiter != null) onSave(parsedPrice, parsedLiter, rawOcrTextFuel)
                 },
                 enabled = price.toDoubleOrNullFlexible() != null && liter.toDoubleOrNullFlexible() != null,
+                colors = ButtonDefaults.buttonColors(
+                    disabledContainerColor = Color.Gray,
+                    disabledContentColor = Color.White,
+                ),
             ) {
                 Text("Save")
             }

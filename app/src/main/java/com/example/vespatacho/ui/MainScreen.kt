@@ -219,6 +219,10 @@ private fun DetectedOverlay(km: Int, rawText: String, onSave: (Int, String) -> U
             Button(
                 onClick = { editedKm.toIntOrNull()?.let { onSave(it, rawText) } },
                 enabled = editedKm.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(
+                    disabledContainerColor = Color.Gray,
+                    disabledContentColor = Color.White,
+                ),
             ) {
                 Text("Save")
             }

@@ -54,10 +54,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vespatacho.BuildConfig
 import com.example.vespatacho.TachoActivity
-import com.example.vespatacho.GasStationActivity
 import com.example.vespatacho.VehicleManagementActivity
 import com.example.vespatacho.data.GasReading
 import com.example.vespatacho.data.Vehicle
+import com.example.vespatacho.mlkit.GasStationCameraXActivity
 import info.hannes.github.AppUpdateHelper
 import kotlinx.coroutines.flow.Flow
 import java.text.SimpleDateFormat
@@ -167,7 +167,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                             },
                             onTankanzeige = {
                                 context.startActivity(
-                                    Intent(context, GasStationActivity::class.java)
+                                    Intent(context, GasStationCameraXActivity::class.java)
                                         .putExtra("vehicleId", vehicle.id),
                                 )
                             },
