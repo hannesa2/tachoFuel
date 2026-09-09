@@ -109,9 +109,9 @@ android {
 }
 
 configurations.all {
-    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib:2.3.20")
-    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.3.20")
-    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.3.20")
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib:2.4.10")
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.4.10")
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.4.10")
 }
 
 dependencies {
