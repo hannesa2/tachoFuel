@@ -232,7 +232,7 @@ fun EditKmReadingScreen(
                             fuelImage?.let { bmp ->
                                 Image(
                                     bitmap = bmp.asImageBitmap(),
-                                    contentDescription = "Tankanzeige-Scan",
+                                    contentDescription = "Zapfsäule-Scan",
                                     contentScale = ContentScale.Fit,
                                     modifier = Modifier
                                         .weight(1f)
@@ -265,7 +265,7 @@ fun EditKmReadingScreen(
                             value = ocrText,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("OCR Tankanzeige") },
+                            label = { Text("OCR Zapfsäule") },
                             minLines = 2,
                             modifier = Modifier.fillMaxWidth(),
                         )

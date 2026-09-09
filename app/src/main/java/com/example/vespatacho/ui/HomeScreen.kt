@@ -165,7 +165,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                                         .putExtra("vehicleId", vehicle.id),
                                 )
                             },
-                            onTankanzeige = {
+                            onGasPump = {
                                 context.startActivity(
                                     Intent(context, GasStationCameraXActivity::class.java)
                                         .putExtra("vehicleId", vehicle.id),
@@ -185,7 +185,7 @@ private fun VehicleTab(
     kmReadingsFlow: Flow<List<GasReading>>,
     onDelete: (GasReading) -> Unit,
     onTacho: () -> Unit,
-    onTankanzeige: () -> Unit,
+    onGasPump: () -> Unit,
 ) {
     val readings by kmReadingsFlow.collectAsState(initial = emptyList())
     val fmt = remember { SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()) }
@@ -232,7 +232,7 @@ private fun VehicleTab(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Button(onClick = onTacho, modifier = Modifier.weight(1f)) { Text("Tacho") }
-            Button(onClick = onTankanzeige, modifier = Modifier.weight(1f)) { Text("Tankanzeige") }
+            Button(onClick = onGasPump, modifier = Modifier.weight(1f)) { Text("Zapfsäule") }
         }
 
         FuelConsumptionChart(
