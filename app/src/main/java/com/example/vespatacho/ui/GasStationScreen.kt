@@ -155,7 +155,7 @@ fun CameraFuelScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("⛽ Tankanzeige") },
+                title = { Text("⛽ Zapfsäule") },
                 actions = {
                     IconButton(onClick = onShowHistory) {
                         Icon(Icons.Default.History, contentDescription = "History")
