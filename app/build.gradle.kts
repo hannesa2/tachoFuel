@@ -40,7 +40,7 @@ android {
         applicationId = "info.hannes.vespatacho"
         minSdk = 26
         versionCode = "${getGitCommitCount()}".toInt()
-        versionName = "${getVersionText()}.$versionCode-${getLatestGitHash()}"
+        versionName = getVersionText()
         println { "versionName=${versionName.green.bold} versionCode=${versionCode.green.bold}" }
 
         buildConfigField("String", "BASE_URL", "\"https://abcdomain.co/xyz/\"")
