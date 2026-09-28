@@ -36,6 +36,7 @@ class VespaTachoApp : LoggingApplication() {
         super.onCreate()
         Utils.init(this)
         appScope.launch {
+            repository.ensureAuth()
             repository.syncFromCloud()
             detectionSampleRepository.syncFromCloud()
             detectionSampleRepository.retryPendingUploads()

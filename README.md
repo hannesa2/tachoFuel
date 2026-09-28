@@ -19,6 +19,21 @@ activated once in the Firebase Console:
 
 ---
 
+## Firebase Security Rules
+
+Both Cloud Firestore and Firebase Storage are configured with basic authentication rules (`request.auth != null`), ensuring all read and write requests must be authenticated (anonymous auth in the app):
+
+- [firestore.rules](firestore.rules): Requires `request.auth != null` for all Firestore operations.
+- [storage.rules](storage.rules): Requires `request.auth != null` for all Storage operations.
+- [firebase.json](firebase.json) & [.firebaserc](.firebaserc): Configuration for deploying via Firebase CLI.
+
+Deploy the rules to Firebase:
+```bash
+firebase deploy --only firestore:rules,storage
+```
+
+---
+
 ## Download ML training data from Firebase (macOS)
 
 Detection sample images and OCR texts are stored in Firebase Storage and Firestore under the anonymous user's UID.
