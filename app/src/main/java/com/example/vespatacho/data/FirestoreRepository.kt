@@ -1,10 +1,10 @@
 package com.example.vespatacho.data
 
-import com.example.vespatacho.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 
 /**
  * Handles all Firestore read/write operations.
@@ -12,9 +12,9 @@ import kotlinx.coroutines.tasks.await
  * Data lives under: users/{uid}/gasReadings/{vehicleId}_{readingId}
  *                   users/{uid}/vehicles/{vehicleId}
  *
- * In DEBUG builds a fixed UID is used so debug and release installs share
- * the same Firestore data regardless of anonymous auth session.
- * In RELEASE the UID comes from anonymous Firebase Auth (device-stable).
+ * All installs access the shared data under [SHARED_UID].
+ * Anonymous Firebase Auth is used so requests are authenticated and satisfy
+ * Firebase security rules requiring `request.auth != null`.
  */
 class FirestoreRepository {
 
@@ -26,8 +26,27 @@ class FirestoreRepository {
         const val SHARED_UID = "Lv4rXOuuk4XtvmHzv7Ub6DBpXx03"
     }
 
+    /**
+     * Ensures an authenticated session exists before making any Firestore calls,
+     * so security rules requiring `request.auth != null` succeed.
+     */
+    suspend fun ensureAuth(): String? {
+        val current = auth.currentUser
+        if (current != null) return current.uid
+        return runCatching {
+            auth.signInAnonymously().await()
+            Timber.d("FirestoreRepository: anonymous auth signed in as ${auth.currentUser?.uid}")
+            auth.currentUser?.uid
+        }.onFailure {
+            Timber.w(it, "FirestoreRepository: anonymous auth sign-in failed")
+        }.getOrNull()
+    }
+
     /** Returns the UID to use for Firestore paths. */
-    private suspend fun uid(): String = SHARED_UID
+    private suspend fun uid(): String {
+        ensureAuth()
+        return SHARED_UID
+    }
 
     private suspend fun readingsCollection() =
         db.collection("users").document(uid()).collection("gasReadings")

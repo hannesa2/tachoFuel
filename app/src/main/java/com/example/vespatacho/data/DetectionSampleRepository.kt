@@ -79,6 +79,7 @@ class DetectionSampleRepository(
     suspend fun deleteForReading(readingId: Long) {
         val samples = dao.getAllForReading(readingId)
         if (samples.isEmpty()) return
+        runCatching { ensureUid() }
         val firestoreUid = FirestoreRepository.SHARED_UID
         for (sample in samples) {
             runCatching {
