@@ -17,6 +17,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Vespa Tacho" +
-        ""
+rootProject.name = "Vespa Tacho"
 include(":app")
