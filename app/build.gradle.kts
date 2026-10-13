@@ -116,7 +116,7 @@ configurations.matching { !it.name.startsWith("androidLint") }.configureEach {
 
 dependencies {
     implementation("com.google.mlkit:pose-detection-accurate:17.0.0")
-    val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
+    val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
     implementation(composeBom)
     implementation("com.github.AppDevNext.Logcat:LogcatCoreLib:3.6")
     implementation("com.github.AppDevNext.Logcat:LogcatCrashlyticLib:3.6")
