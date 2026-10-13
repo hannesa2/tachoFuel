@@ -136,7 +136,7 @@ dependencies {
     implementation("androidx.camera:camera-view:1.3.3")
 
     implementation("com.google.mlkit:object-detection-custom:17.0.2")
-    implementation("com.google.guava:guava:33.7.1-android")
+    implementation("com.google.guava:guava:33.7.2-android")
     implementation("androidx.constraintlayout:constraintlayout:2.2.2")
     // ML Kit — on-device text recognition and the optional demo detectors used by the sample camera activity
     implementation("com.google.mlkit:text-recognition:16.0.1")
