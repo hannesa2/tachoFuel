@@ -146,7 +146,7 @@ dependencies {
     implementation("com.google.mlkit:object-detection:17.0.0")
     implementation("com.google.mlkit:pose-detection:18.0.0-beta5")
     implementation("com.google.mlkit:segmentation-selfie:16.0.0-beta6")
-    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("androidx.appcompat:appcompat:1.8.0")
 
     // Room
     implementation("androidx.room:room-runtime:2.8.5")
