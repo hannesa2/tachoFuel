@@ -24,6 +24,7 @@ class VespaTachoApp : LoggingApplication() {
             vehicleDao = database.vehicleDao(),
             firestore = FirestoreRepository(),
             detectionSamples = detectionSampleRepository,
+            tankSizeEntryDao = database.tankSizeEntryDao(),
             scope = appScope,
         )
     }

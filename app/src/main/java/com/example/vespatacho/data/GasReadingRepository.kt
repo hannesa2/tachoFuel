@@ -16,6 +16,7 @@ class GasReadingRepository(
     private val vehicleDao: VehicleDao,
     private val firestore: FirestoreRepository,
     private val detectionSamples: DetectionSampleRepository? = null,
+    private val tankSizeEntryDao: TankSizeEntryDao,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) {
 
@@ -66,8 +67,33 @@ class GasReadingRepository(
     }
 
     suspend fun deleteVehicle(vehicle: Vehicle) {
+        val entries = tankSizeEntryDao.getByVehicleOnce(vehicle.id)
         vehicleDao.delete(vehicle)
-        scope.launch { runCatching { firestore.deleteVehicle(vehicle) } }
+        scope.launch {
+            runCatching { firestore.deleteVehicle(vehicle) }
+            entries.forEach { deleteTankSizeEntry(it) }
+        }
+    }
+
+    // ── TankSizeEntry ─────────────────────────────────────────────────────────
+
+    fun getTankSizeEntriesByVehicle(vehicleId: Long): Flow<List<TankSizeEntry>> =
+        tankSizeEntryDao.getByVehicle(vehicleId)
+
+    suspend fun insertTankSizeEntry(entry: TankSizeEntry): Long {
+        val id = tankSizeEntryDao.insert(entry)
+        scope.launch { runCatching { firestore.upsertTankSizeEntry(entry.copy(id = id)) } }
+        return id
+    }
+
+    suspend fun updateTankSizeEntry(entry: TankSizeEntry) {
+        tankSizeEntryDao.update(entry)
+        scope.launch { runCatching { firestore.upsertTankSizeEntry(entry) } }
+    }
+
+    suspend fun deleteTankSizeEntry(entry: TankSizeEntry) {
+        tankSizeEntryDao.delete(entry)
+        scope.launch { runCatching { firestore.deleteTankSizeEntry(entry) } }
     }
 
     // ── Cloud → Local sync ───────────────────────────────────────────────────
@@ -87,6 +113,10 @@ class GasReadingRepository(
             // Sync readings
             val localReadingIds = gasDao.getAllIds().toSet()
             firestore.fetchReadingsMissingLocally(localReadingIds).forEach { gasDao.insert(it) }
+
+            // Sync tank size entries
+            val localTankSizeEntryIds = tankSizeEntryDao.getAllOnce().map { it.id }.toSet()
+            firestore.fetchTankSizeEntriesMissingLocally(localTankSizeEntryIds).forEach { tankSizeEntryDao.insert(it) }
         }
     }
 }

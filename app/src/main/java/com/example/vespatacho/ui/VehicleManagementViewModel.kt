@@ -4,8 +4,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.vespatacho.data.AppDatabase
+import com.example.vespatacho.data.TankSizeEntry
 import com.example.vespatacho.data.Vehicle
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -25,4 +27,20 @@ class VehicleManagementViewModel(app: Application) : AndroidViewModel(app) {
     fun deleteVehicle(vehicle: Vehicle) {
         viewModelScope.launch(Dispatchers.IO) { repo.deleteVehicle(vehicle) }
     }
+
+    fun tankSizeEntriesForVehicle(vehicleId: Long): Flow<List<TankSizeEntry>> =
+        repo.getTankSizeEntriesByVehicle(vehicleId)
+
+    fun addTankSizeEntry(entry: TankSizeEntry) {
+        viewModelScope.launch(Dispatchers.IO) { repo.insertTankSizeEntry(entry) }
+    }
+
+    fun updateTankSizeEntry(entry: TankSizeEntry) {
+        viewModelScope.launch(Dispatchers.IO) { repo.updateTankSizeEntry(entry) }
+    }
+
+    fun deleteTankSizeEntry(entry: TankSizeEntry) {
+        viewModelScope.launch(Dispatchers.IO) { repo.deleteTankSizeEntry(entry) }
+    }
 }
+

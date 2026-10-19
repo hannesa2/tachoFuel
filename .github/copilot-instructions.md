@@ -59,8 +59,8 @@ Activity
 
 ## Database
 
-Current version: **7**  
-Migrations: 1→2, 2→3, 3→4, 4→5, 5→6, 6→7 (all in `AppDatabase.kt`)
+Current version: **11**  
+Migrations: 1→2, 2→3, 3→4, 4→5, 5→6, 6→7, 7→8, 8→9, 9→10, 10→11 (all in `AppDatabase.kt`)
 
 ### Entities
 
@@ -72,7 +72,7 @@ rawOcrTextKm (nullable), rawOcrTextFuel (nullable), timestamp
 
 **`vehicles`**
 ```
-id, name
+id, name, tankLiters (default/standard tank capacity)
 ```
 
 **`detection_samples`** (ML training data)
@@ -80,6 +80,14 @@ id, name
 id, type ("ODOMETER"|"FUEL"), imageJpeg (BLOB), rawOcrText,
 detectedKm, detectedPrice, detectedLiter, storageUrl, vehicleId, timestamp
 ```
+
+**`tank_size_entries`** (optional dated tank-capacity overrides per vehicle)
+```
+id, vehicleId, tankLiters, validFrom (nullable epoch millis), validTo (nullable epoch millis)
+```
+`validFrom`/`validTo` are both optional (open-ended range when null). Use
+`resolveTankLiters()` in `TankSizeEntry.kt` to get the capacity that applied
+at a given timestamp, falling back to `Vehicle.tankLiters` when no entry matches.
 
 When adding columns, **always write a new Migration** — never bump version without one.  
 SQLite on Android < 3.25 does not support `RENAME COLUMN` — recreate the table instead.
@@ -93,6 +101,7 @@ Firestore:
   users/{uid}/gasReadings/{vehicleId}_{localId}
   users/{uid}/vehicles/{vehicleId}
   users/{uid}/detectionSamples/{localId}
+  users/{uid}/tankSizeEntries/{vehicleId}_{localId}
 
 Storage:
   detectionSamples/{uid}/ODOMETER/{timestamp}_{id}.jpg
@@ -140,6 +149,7 @@ Saves compressed images for ML training:
 | `data/AppDatabase.kt` | Room DB, all migrations |
 | `data/GasReading.kt` | Core entity |
 | `data/DetectionSample.kt` | ML training entity (image + OCR metadata) |
+| `data/TankSizeEntry.kt` | Optional dated tank-capacity override entity + `resolveTankLiters()` |
 | `data/GasReadingRepository.kt` | Write-through repo (Room + Firestore) |
 | `data/DetectionSampleRepository.kt` | Image compress + Room + Storage + Firestore |
 | `data/FirestoreRepository.kt` | All Firestore CRUD |
@@ -147,6 +157,7 @@ Saves compressed images for ML training:
 | `camera/FuelDetector.kt` | Multi-pass fuel price/liter OCR |
 | `ui/HomeScreen.kt` | Main list; single-tap → edit, long-press → options dialog |
 | `ui/EditKmReadingScreen.kt` | Edit form; shows scan images + OCR text below Save/Cancel |
+| `ui/VehicleManagementScreen.kt` | Manage vehicles + per-vehicle tank-size history dialog |
 | `ui/FuelConsumptionChart.kt` | AndroidChart line chart; X = absolute km, Y = l/100km |
 | `app/google-services.json` | **Replace with real Firebase file** (current is placeholder) |
 

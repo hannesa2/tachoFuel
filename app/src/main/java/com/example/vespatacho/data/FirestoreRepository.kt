@@ -54,6 +54,9 @@ class FirestoreRepository {
     private suspend fun vehiclesCollection() =
         db.collection("users").document(uid()).collection("vehicles")
 
+    private suspend fun tankSizeEntriesCollection() =
+        db.collection("users").document(uid()).collection("tankSizeEntries")
+
     // ── GasReading ──────────────────────────────────────────────────────────
 
     suspend fun upsertReading(reading: GasReading) {
@@ -88,6 +91,25 @@ class FirestoreRepository {
         val snapshot = vehiclesCollection().get().await()
         return snapshot.documents.mapNotNull { doc ->
             doc.toVehicle()?.takeIf { it.id !in localIds }
+        }
+    }
+
+    // ── TankSizeEntry ───────────────────────────────────────────────────────
+
+    suspend fun upsertTankSizeEntry(entry: TankSizeEntry) {
+        val docId = "${entry.vehicleId}_${entry.id}"
+        tankSizeEntriesCollection().document(docId).set(entry.toFirestoreMap(), SetOptions.merge()).await()
+    }
+
+    suspend fun deleteTankSizeEntry(entry: TankSizeEntry) {
+        val docId = "${entry.vehicleId}_${entry.id}"
+        tankSizeEntriesCollection().document(docId).delete().await()
+    }
+
+    suspend fun fetchTankSizeEntriesMissingLocally(localIds: Set<Long>): List<TankSizeEntry> {
+        val snapshot = tankSizeEntriesCollection().get().await()
+        return snapshot.documents.mapNotNull { doc ->
+            doc.toTankSizeEntry()?.takeIf { it.id !in localIds }
         }
     }
 }
@@ -131,6 +153,26 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toVehicle(): Vehicle?
             id = getLong("id") ?: return null,
             name = getString("name") ?: return null,
             tankLiters = getDouble("tankLiters") ?: 5.5,
+        )
+    } catch (_: Exception) { null }
+}
+
+internal fun TankSizeEntry.toFirestoreMap(): Map<String, Any?> = buildMap {
+    put("id", id)                 // Long ✓
+    put("vehicleId", vehicleId)   // Long ✓
+    put("tankLiters", tankLiters) // Double ✓
+    put("validFrom", validFrom)   // Long? ✓
+    put("validTo", validTo)       // Long? ✓
+}
+
+private fun com.google.firebase.firestore.DocumentSnapshot.toTankSizeEntry(): TankSizeEntry? {
+    return try {
+        TankSizeEntry(
+            id = getLong("id") ?: return null,
+            vehicleId = getLong("vehicleId") ?: return null,
+            tankLiters = getDouble("tankLiters") ?: return null,
+            validFrom = getLong("validFrom"),
+            validTo = getLong("validTo"),
         )
     } catch (_: Exception) { null }
 }
