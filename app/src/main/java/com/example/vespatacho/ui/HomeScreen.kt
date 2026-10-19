@@ -158,6 +158,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                         VehicleTab(
                             vehicle = vehicle,
                             kmReadingsFlow = viewModel.kmReadingsForVehicle(vehicle.id),
+                            tankSizeEntriesFlow = viewModel.tankSizeEntriesForVehicle(vehicle.id),
                             onDelete = viewModel::deleteReading,
                             onTacho = {
                                 context.startActivity(
@@ -183,11 +184,13 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
 private fun VehicleTab(
     vehicle: Vehicle,
     kmReadingsFlow: Flow<List<GasReading>>,
+    tankSizeEntriesFlow: Flow<List<com.example.vespatacho.data.TankSizeEntry>>,
     onDelete: (GasReading) -> Unit,
     onTacho: () -> Unit,
     onGasPump: () -> Unit,
 ) {
     val readings by kmReadingsFlow.collectAsState(initial = emptyList())
+    val tankSizeEntries by tankSizeEntriesFlow.collectAsState(initial = emptyList())
     val fmt = remember { SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()) }
     val listState = rememberLazyListState()
 
@@ -214,12 +217,17 @@ private fun VehicleTab(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(readings, key = { _, reading -> reading.id }) { index, reading ->
+                    val effectiveTankLiters = com.example.vespatacho.data.resolveTankLiters(
+                        tankSizeEntries,
+                        reading.timestamp,
+                        vehicle.tankLiters,
+                    )
                     HomeReadingCard(
                         reading = reading,
                         prevKm = readings.getOrNull(index + 1)?.km,
                         dateStr = fmt.format(Date(reading.timestamp)),
-                        estimatedRange = if (index == 0) estimatedRangeKm(readings, vehicle.tankLiters) else null,
-                        tankLiters = vehicle.tankLiters,
+                        estimatedRange = if (index == 0) estimatedRangeKm(readings, effectiveTankLiters) else null,
+                        tankLiters = effectiveTankLiters,
                         onDelete = { onDelete(reading) },
                     )
                 }

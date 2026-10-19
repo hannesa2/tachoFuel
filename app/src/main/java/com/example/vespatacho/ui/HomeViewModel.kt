@@ -36,6 +36,9 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     fun kmReadingsForVehicle(vehicleId: Long): Flow<List<GasReading>> =
         repo.getAllByVehicle(vehicleId)
 
+    fun tankSizeEntriesForVehicle(vehicleId: Long): Flow<List<com.example.vespatacho.data.TankSizeEntry>> =
+        repo.getTankSizeEntriesByVehicle(vehicleId)
+
     fun deleteReading(reading: GasReading) {
         viewModelScope.launch(Dispatchers.IO) { repo.delete(reading) }
     }
